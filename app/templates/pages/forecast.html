@@ -1,0 +1,73 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import chart, regime with context %}
+{% block title %}Previsão de caixa{% endblock %}
+{% block head_scripts %}<script src="/static/vendor/chart.umd.min.js" defer></script>{% endblock %}
+{% block page_title %}Previsão de fluxo de caixa{% endblock %}
+{% block content %}
+<form class="mb-6 flex flex-wrap items-end gap-3" method="get" action="/app/previsao" data-autosubmit hx-get="/app/previsao" hx-target="body" hx-push-url="true">
+  <fieldset>
+    <legend class="label">Horizonte</legend>
+    <div class="flex gap-1 rounded-xl bg-surface-3 p-1">
+      {% for h in horizons %}
+      <label class="cursor-pointer"><input type="radio" name="dias" value="{{ h }}" class="peer sr-only" {% if h == days %}checked{% endif %}><span class="block rounded-lg px-4 py-1.5 text-sm font-semibold text-muted peer-checked:bg-surface peer-checked:text-fg peer-checked:shadow-soft peer-focus-visible:ring-2 peer-focus-visible:ring-primary">{{ h }} dias</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <div>
+    <label class="label" for="fc-acc">Conta</label>
+    <select id="fc-acc" name="account_id" class="input">
+      <option value="">Consolidado (todas)</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if selected_account == a.id|string %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <noscript><button class="btn btn-secondary" type="submit">Aplicar</button></noscript>
+</form>
+
+<div class="mb-6 rounded-xl border border-info/30 bg-info-soft px-4 py-3 text-sm text-info" role="note">
+  {{ icon("info", "mr-1 inline size-4") }} Projeção <strong>determinística</strong>: parte do saldo realizado de hoje e soma apenas lançamentos previstos, recorrências programadas e faturas de cartão a pagar. Não utiliza estatística nem inteligência artificial.
+</div>
+
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <article class="card card-pad"><p class="text-sm text-muted">Saldo realizado hoje {{ regime("saldo") }}</p><p class="num mt-2 text-2xl font-bold">{{ f.starting_balance|brl }}</p></article>
+  <article class="card card-pad"><p class="text-sm text-muted">Entradas previstas {{ regime("previsto") }}</p><p class="num mt-2 text-2xl font-bold text-positive">{{ f.inflow|brl }}</p></article>
+  <article class="card card-pad"><p class="text-sm text-muted">Saídas previstas {{ regime("previsto") }}</p><p class="num mt-2 text-2xl font-bold text-negative">{{ f.outflow|brl }}</p></article>
+  <article class="card card-pad"><p class="text-sm text-muted">Saldo projetado em {{ f.end_date|date_br }}</p><p class="num mt-2 text-2xl font-bold {{ 'text-negative' if f.ending_balance < 0 }}">{{ f.ending_balance|brl }}</p></article>
+</section>
+
+{% set fn = f.first_negative %}
+{% if fn %}
+<div class="mt-6 rounded-xl border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative" role="alert">
+  {{ icon("triangle-alert", "mr-1 inline size-4") }} O saldo consolidado fica <strong>negativo em {{ fn[0]|date_br }}</strong> ({{ fn[1]|brl }}){% if fn[2] %}, motivado por: {{ fn[2]|map(attribute="description")|join(", ") }}{% endif %}. {{ f.negative_days|length }} dia(s) negativo(s) no período.
+</div>
+{% endif %}
+
+<section class="card card-pad mt-6">
+  <header class="mb-4 flex items-center justify-between"><h2 class="card-title">Saldo projetado dia a dia</h2>{{ regime("previsto") }}</header>
+  {{ chart("ch-fc", chart, "h-80", "Gráfico de linha com o saldo projetado para os próximos " ~ days ~ " dias", table) }}
+  {% for w in f.warnings %}<p class="mt-2 flex items-start gap-2 text-xs text-muted">{{ icon("info", "mt-0.5 size-3.5 shrink-0") }} {{ w }}</p>{% endfor %}
+</section>
+
+<section class="card mt-6 overflow-hidden">
+  <header class="border-b border-line px-5 py-4"><h2 class="card-title">Eventos considerados</h2></header>
+  {% if f.events %}
+  <div class="table-wrap">
+    <table class="table">
+      <caption class="sr-only">Eventos futuros considerados na projeção</caption>
+      <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Origem</th><th scope="col" class="text-right">Valor</th></tr></thead>
+      <tbody>
+        {% for e in f.events %}
+        <tr>
+          <td class="num text-sm">{{ e.day|date_br }}</td>
+          <td class="text-sm">{{ e.description }}</td>
+          <td>{% set labels = {"planned": ("Previsto", "badge-info"), "recurrence": ("Recorrência", "badge-accent"), "card": ("Fatura de cartão", "badge-neutral"), "overdue": ("Em atraso", "badge-negative")} %}<span class="{{ labels[e.source][1] }}">{{ labels[e.source][0] }}</span></td>
+          <td class="num text-right font-semibold {{ 'text-positive' if e.amount_cents > 0 else 'text-negative' }}">{{ e.amount_cents|brl(True) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="px-5 py-10 text-center text-sm text-muted">Nenhum evento futuro conhecido. Cadastre lançamentos previstos ou recorrências para enriquecer a projeção.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import empty_state, progress, csrf, regime with context %}
+{% block title %}Orçamentos{% endblock %}
+{% block page_title %}Orçamentos{% endblock %}
+{% block header_actions %}
+<a href="/app/orcamentos/novo?month={{ month.iso() }}" hx-get="/app/orcamentos/novo?month={{ month.iso() }}" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Novo orçamento</span></a>
+{% endblock %}
+{% block content %}
+<div id="budgets-page" hx-get="/app/orcamentos?month={{ month.iso() }}" hx-trigger="refresh from:body" hx-select="#budgets-page" hx-target="this" hx-swap="outerHTML">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <a class="btn-icon" href="/app/orcamentos?month={{ prev.iso() }}" aria-label="Mês anterior">{{ icon("chevron-left") }}</a>
+      <p class="min-w-44 text-center font-semibold capitalize">{{ month.label() }}</p>
+      <a class="btn-icon" href="/app/orcamentos?month={{ next.iso() }}" aria-label="Próximo mês">{{ icon("chevron-right") }}</a>
+    </div>
+    {% if previous_count %}
+    <form method="post" action="/app/orcamentos/acoes/copiar" hx-post="/app/orcamentos/acoes/copiar">{{ csrf() }}<input type="hidden" name="month" value="{{ month.iso() }}"><button type="submit" class="btn btn-secondary btn-sm">{{ icon("layers") }} Copiar do mês anterior</button></form>
+    {% endif %}
+  </div>
+
+  {% if o.items %}
+  <section class="card card-pad mb-6 grid gap-6 sm:grid-cols-4">
+    <div><p class="text-xs text-muted">Planejado</p><p class="num mt-1 text-xl font-bold">{{ o.total_limit|brl }}</p></div>
+    <div><p class="text-xs text-muted">Utilizado (efetivado) {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold">{{ o.total_used|brl }}</p></div>
+    <div><p class="text-xs text-muted">Previsto a gastar</p><p class="num mt-1 text-xl font-bold text-info">{{ o.total_planned|brl }}</p></div>
+    <div><p class="text-xs text-muted">Restante</p><p class="num mt-1 text-xl font-bold {{ 'text-negative' if o.total_limit - o.total_used < 0 else 'text-positive' }}">{{ (o.total_limit - o.total_used)|brl }}</p></div>
+  </section>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {% for i in o.items %}
+    {% set tone = "negative" if i.level == "over" else ("warning" if i.level == "warning" else "primary") %}
+    <article class="card card-pad">
+      <header class="flex items-start gap-3">
+        <span class="inline-flex size-10 items-center justify-center rounded-xl text-white {{ color_class(i.budget.category.color) }}">{{ icon(i.budget.category.icon) }}</span>
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate font-semibold">{{ i.budget.category.name }}</h2>
+          <p class="text-xs text-muted">Limite <span class="num">{{ i.limit|brl }}</span></p>
+        </div>
+        {% if i.level == "over" %}<span class="badge-negative">{{ icon("triangle-alert", "size-3") }} Limite atingido</span>{% elif i.level == "warning" %}<span class="badge-warning">{{ icon("triangle-alert", "size-3") }} Atenção</span>{% endif %}
+      </header>
+      <div class="mt-5 flex items-end justify-between">
+        <p class="num text-2xl font-bold">{{ i.used|brl }}</p>
+        <p class="num text-sm font-semibold text-{{ tone }}">{{ (i.pct|string).replace(".", ",") }}%</p>
+      </div>
+      <div class="mt-2">{{ progress(i.pct|float, tone, i.planned_pct|float, "Orçamento de " ~ i.budget.category.name) }}</div>
+      <dl class="mt-4 grid grid-cols-3 gap-2 text-xs">
+        <div><dt class="text-muted">Restante</dt><dd class="num font-semibold {{ 'text-negative' if i.remaining < 0 }}">{{ i.remaining|brl }}</dd></div>
+        <div><dt class="text-muted">Previsto</dt><dd class="num font-semibold text-info">{{ i.planned|brl }}</dd></div>
+        <div><dt class="text-muted">Mês anterior</dt><dd class="num font-semibold">{{ i.previous_used|brl }}</dd></div>
+      </dl>
+      <div class="mt-4 flex justify-end gap-1 border-t border-line pt-3">
+        <a href="/app/transacoes?month={{ month.iso() }}&category_id={{ i.budget.category_id }}" class="btn btn-ghost btn-sm">{{ icon("list") }} Lançamentos</a>
+        <a href="/app/orcamentos/{{ i.budget.id }}/editar" hx-get="/app/orcamentos/{{ i.budget.id }}/editar" hx-target="#drawer-body" class="btn btn-ghost btn-sm">{{ icon("pencil") }} Editar</a>
+        <form method="post" action="/app/orcamentos/{{ i.budget.id }}/remover" hx-post="/app/orcamentos/{{ i.budget.id }}/remover">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm" data-confirm="Remover o orçamento de {{ i.budget.category.name }} neste mês?">{{ icon("trash-2") }}</button></form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="mt-6 text-xs text-muted">Utilizado = despesas efetivadas da competência + parcelas de cartão reconhecidas no mês. Transferências não consomem orçamento. A barra clara indica valores previstos ainda não efetivados.</p>
+  {% else %}
+  <div class="card">{{ empty_state("Nenhum orçamento para " ~ month.label(), "Defina limites de gastos por categoria e acompanhe alertas em 80% e 100%.", "piggy-bank", "/app/orcamentos/novo?month=" ~ month.iso(), "Novo orçamento", dialog_id="drawer") }}</div>
+  {% endif %}
+</div>
+{% endblock %}

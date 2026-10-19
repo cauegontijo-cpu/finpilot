@@ -36,4 +36,4 @@ class AuditLog(Base):
     request_id: Mapped[str | None] = mapped_column(String(64))
     ip_address: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(200))
-    occurred_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    occurred_at: Mapped[datetime] = mapped_column(server_default=func.clock_timestamp())

@@ -1,0 +1,128 @@
+{% from "components/ui.html" import regime, chart, progress, empty_state with context %}
+<div id="dashboard-content" class="htmx-dim space-y-6" hx-get="/app?year={{ d.month.year }}&m={{ d.month.month }}&account_id={{ selected_account }}&category_id={{ selected_category }}" hx-trigger="refresh from:body" hx-target="this" hx-swap="outerHTML">
+  <p class="text-sm text-muted">Competência de <strong class="capitalize text-fg">{{ d.month.label() }}</strong>{% if d.scope.account_id %} · filtrado por conta{% endif %}{% if d.scope.category_id %} · filtrado por categoria{% endif %}</p>
+
+  {% if not d.has_data %}
+  <div class="card">
+    {{ empty_state("Seu painel ainda está vazio", "Cadastre uma conta e registre receitas e despesas para ver indicadores, gráficos e projeções.", "layout-dashboard", "/app/contas/nova", "Cadastrar primeira conta", dialog_id="drawer") }}
+  </div>
+  {% else %}
+
+  {# ------------------------------------------------ KPIs #}
+  {% set cur = d.current %}{% set prev = d.previous %}
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
+    <article class="card card-pad relative overflow-hidden bg-brand text-on-brand xl:col-span-1">
+      <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/40 blur-2xl"></div>
+      <p class="relative flex items-center gap-2 text-sm text-on-brand/80">{{ icon("wallet") }} Saldo disponível <span class="regime border-white/20 text-on-brand/70">Saldo realizado</span></p>
+      <p class="num relative mt-2 text-3xl font-bold tracking-tight text-white">{{ d.balance|brl }}</p>
+      {% if d.reserved_goals %}
+      <p class="relative mt-2 text-xs text-on-brand/75">Reservado em metas: <span class="num">{{ d.reserved_goals|brl }}</span> · Livre: <span class="num font-semibold {{ 'text-[#fb7f93]' if d.free_balance < 0 }}">{{ d.free_balance|brl }}</span></p>
+      {% else %}
+      <p class="relative mt-2 text-xs text-on-brand/75">Contas ativas{% if d.scope.account_id %} (filtrada){% endif %}</p>
+      {% endif %}
+    </article>
+    {% for label, value, previous_value, tone, ic in [("Receitas do mês", cur.income, prev.income, "positive", "trending-up"), ("Despesas do mês", cur.expense, prev.expense, "negative", "trending-down")] %}
+    <article class="card card-pad">
+      <p class="flex items-center gap-2 text-sm text-muted"><span class="inline-flex size-7 items-center justify-center rounded-lg bg-{{ tone }}-soft text-{{ tone }}">{{ icon(ic) }}</span>{{ label }} {{ regime("competencia") }}</p>
+      <p class="num mt-2 text-2xl font-bold tracking-tight">{{ value|brl }}</p>
+      {% set delta = value - previous_value %}
+      <p class="mt-1 text-xs text-muted">{% if previous_value %}<span class="num font-semibold {{ ('text-positive' if delta >= 0 else 'text-negative') if tone == 'positive' else ('text-negative' if delta > 0 else 'text-positive') }}">{{ delta|brl(True) }}</span> vs. mês anterior{% else %}Sem dados no mês anterior{% endif %}</p>
+      {% if tone == "negative" and cur.card_expense %}<p class="mt-0.5 text-xs text-muted">inclui <span class="num">{{ cur.card_expense|brl }}</span> em parcelas de cartão</p>{% endif %}
+    </article>
+    {% endfor %}
+    <article class="card card-pad">
+      <p class="flex items-center gap-2 text-sm text-muted"><span class="inline-flex size-7 items-center justify-center rounded-lg bg-primary-soft text-primary">{{ icon("scale") }}</span>Resultado líquido {{ regime("competencia") }}</p>
+      <p class="num mt-2 text-2xl font-bold tracking-tight {{ 'text-negative' if cur.net < 0 else 'text-positive' }}">{{ cur.net|brl(True) }}</p>
+      <p class="mt-1 text-xs text-muted">Economia: <span class="num font-semibold text-fg">{{ (cur.savings_rate|string).replace(".", ",") ~ "%" if cur.savings_rate is not none else "—" }}</span> das receitas</p>
+    </article>
+  </section>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores complementares">
+    <article class="card card-pad">
+      <p class="flex items-center justify-between text-sm text-muted"><span>Orçamento utilizado</span>{{ regime("competencia") }}</p>
+      {% if d.budgets.items %}
+      <p class="num mt-2 text-xl font-bold">{{ (d.budgets.pct|string).replace(".", ",") }}%</p>
+      <div class="mt-3">{{ progress(d.budgets.pct|float, "negative" if d.budgets.pct >= 100 else "warning" if d.budgets.pct >= 80 else "primary", (d.budgets.total_planned * 100 / d.budgets.total_limit) if d.budgets.total_limit else 0, "Orçamento total utilizado") }}</div>
+      <p class="mt-2 text-xs text-muted"><span class="num">{{ d.budgets.total_used|brl }}</span> de <span class="num">{{ d.budgets.total_limit|brl }}</span>{% if d.budgets.total_planned %} · previsto <span class="num">{{ d.budgets.total_planned|brl }}</span>{% endif %}</p>
+      {% else %}
+      <p class="mt-2 text-sm text-muted">Nenhum orçamento neste mês.</p>
+      <a class="link mt-2 inline-block text-sm" href="/app/orcamentos?month={{ d.month.iso() }}">Definir orçamentos</a>
+      {% endif %}
+    </article>
+    <article class="card card-pad">
+      <p class="flex items-center justify-between text-sm text-muted"><span>Faturas em aberto</span>{{ regime("caixa") }}</p>
+      <p class="num mt-2 text-xl font-bold">{{ d.open_statements_total|brl }}</p>
+      <p class="mt-2 text-xs text-muted">{{ d.open_statements|length }} fatura(s) · dívida total no cartão <span class="num">{{ d.card_debt|brl }}</span></p>
+    </article>
+    <article class="card card-pad">
+      <p class="flex items-center justify-between text-sm text-muted"><span>Previstos no mês</span>{{ regime("previsto") }}</p>
+      <p class="num mt-2 text-sm"><span class="text-positive">+{{ cur.income_planned|brl }}</span></p>
+      <p class="num text-sm"><span class="text-negative">−{{ cur.expense_planned|brl }}</span></p>
+      <p class="mt-2 text-xs text-muted">Ainda não efetivados — não alteram o saldo.</p>
+    </article>
+    <article class="card card-pad">
+      <p class="flex items-center justify-between text-sm text-muted"><span>Saldo projetado em 90 dias</span>{{ regime("previsto") }}</p>
+      <p class="num mt-2 text-xl font-bold {{ 'text-negative' if d.forecast.ending_balance < 0 }}">{{ d.forecast.ending_balance|brl }}</p>
+      {% set fn = d.forecast.first_negative %}
+      {% if fn %}<p class="mt-2 text-xs font-semibold text-negative">{{ icon("triangle-alert", "inline size-3.5") }} Saldo negativo previsto em {{ fn[0]|date_br }}</p>{% else %}<p class="mt-2 text-xs text-muted">Menor saldo previsto: <span class="num">{{ d.forecast.lowest[1]|brl }}</span></p>{% endif %}
+      <a href="/app/previsao" class="link mt-1 inline-block text-xs">Ver previsão detalhada</a>
+    </article>
+  </section>
+
+  {% if d.budgets.alerts %}
+  <section class="space-y-2" aria-label="Alertas de orçamento">
+    {% for a in d.budgets.alerts[:4] %}
+    <div class="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm {{ 'border-negative/30 bg-negative-soft text-negative' if a.level == 'over' else 'border-warning/30 bg-warning-soft text-warning' }}" role="status">
+      {{ icon("triangle-alert", "size-4 shrink-0") }}
+      <p><strong>{{ a.budget.category.name }}</strong>: {{ (a.pct|string).replace(".", ",") }}% do orçamento utilizado{% if a.level == "over" %} — limite atingido{% else %} — atenção, acima de 80%{% endif %}.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# ------------------------------------------------ gráficos #}
+  <section class="grid gap-6 xl:grid-cols-3">
+    <article class="card card-pad xl:col-span-2">
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Receitas × despesas</h2><p class="card-sub">Últimos 12 meses</p></div>{{ regime("competencia") }}</header>
+      {{ chart("ch-income-expense", d.charts.income_expense, "h-72", "Gráfico de barras com receitas e despesas dos últimos 12 meses", d.tables.income_expense) }}
+    </article>
+    <article class="card card-pad">
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Gastos por categoria</h2><p class="card-sub capitalize">{{ d.month.label() }} · <span class="num normal-case">{{ d.charts.categories_total|brl }}</span></p></div>{{ regime("competencia") }}</header>
+      {% if d.charts.categories.labels %}
+      {{ chart("ch-categories", d.charts.categories, "h-72", "Gráfico de rosca com a distribuição das despesas por categoria", d.tables.categories) }}
+      {% else %}<p class="py-16 text-center text-sm text-muted">Sem despesas nesta competência.</p>{% endif %}
+    </article>
+    <article class="card card-pad xl:col-span-2">
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Evolução do saldo consolidado</h2><p class="card-sub">Saldo realizado ao final de cada mês</p></div>{{ regime("caixa") }}</header>
+      {{ chart("ch-balance", d.charts.balance, "h-64", "Gráfico de linha com a evolução do saldo consolidado", d.tables.balance) }}
+    </article>
+    <article class="card card-pad">
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Orçamento por categoria</h2><p class="card-sub">% utilizado no mês</p></div>{{ regime("competencia") }}</header>
+      {% if d.budgets.items %}
+      {{ chart("ch-budgets", d.charts.budgets, "h-64", "Gráfico de barras horizontais com o percentual de orçamento utilizado por categoria", d.tables.budgets) }}
+      {% else %}<p class="py-16 text-center text-sm text-muted">Nenhum orçamento definido. <a class="link" href="/app/orcamentos?month={{ d.month.iso() }}">Criar</a></p>{% endif %}
+    </article>
+    <article class="card card-pad xl:col-span-2">
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Fluxo de caixa projetado</h2><p class="card-sub">Próximos 90 dias · somente lançamentos conhecidos</p></div>{{ regime("previsto") }}</header>
+      {% if d.charts.forecast.labels %}
+      {{ chart("ch-forecast", d.charts.forecast, "h-64", "Gráfico de barras com entradas e saídas previstas por mês", d.tables.forecast) }}
+      {% else %}<p class="py-16 text-center text-sm text-muted">Nenhum lançamento futuro conhecido.</p>{% endif %}
+      {% for w in d.forecast.warnings %}<p class="mt-2 flex items-start gap-2 text-xs text-muted">{{ icon("info", "mt-0.5 size-3.5 shrink-0") }} {{ w }}</p>{% endfor %}
+    </article>
+    <article class="card">
+      <header class="flex items-center justify-between border-b border-line px-5 py-4"><h2 class="card-title">Próximos vencimentos</h2><span class="regime">15 dias</span></header>
+      <ul class="divide-y divide-line">
+        {% for item in d.upcoming[:8] %}
+        <li><a href="{{ item.link }}" class="flex items-center gap-3 px-5 py-3 hover:bg-surface-2">
+          <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg {{ 'bg-negative-soft text-negative' if item.overdue else 'bg-surface-3 text-muted' }}">{{ icon("credit-card" if item.kind == "card" else ("trending-up" if item.kind == "income" else "receipt")) }}</span>
+          <span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">{{ item.description }}</span><span class="text-xs {{ 'font-semibold text-negative' if item.overdue else 'text-muted' }}">{{ "Vencido em " if item.overdue else "" }}{{ item.day|date_br }}</span></span>
+          <span class="num text-sm font-semibold {{ 'text-positive' if item.kind == 'income' else '' }}">{{ item.amount_cents|brl }}</span>
+        </a></li>
+        {% else %}
+        <li class="px-5 py-10 text-center text-sm text-muted">Nada a vencer nos próximos 15 dias.</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+  {% endif %}
+</div>

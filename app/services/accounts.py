@@ -197,10 +197,11 @@ class AccountService:
         self.db.commit()
 
     def _flush_unique(self) -> None:
+        # Flush direto: em caso de violação, a transação inteira é desfeita (a operação falhou).
         try:
-            with self.db.begin_nested():
-                self.db.flush()
+            self.db.flush()
         except IntegrityError as exc:
+            self.db.rollback()
             raise ConflictError(
                 "Já existe uma conta ativa com esse nome.",
                 code="duplicate_account",

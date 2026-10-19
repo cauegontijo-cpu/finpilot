@@ -170,10 +170,11 @@ class CategoryService:
         return any(self.db.scalar(select(c)) for c in checks)
 
     def _flush_unique(self) -> None:
+        # Flush direto: em caso de violação, a transação inteira é desfeita (a operação falhou).
         try:
-            with self.db.begin_nested():
-                self.db.flush()
+            self.db.flush()
         except IntegrityError as exc:
+            self.db.rollback()
             raise ConflictError(
                 "Já existe uma categoria ativa com esse nome e tipo.",
                 code="duplicate_category",

@@ -9,8 +9,12 @@ from sqlalchemy.orm import Session
 from app.core.clock import Clock
 from app.core.config import Settings
 from app.services.accounts import AccountService
+from app.services.analytics import AnalyticsService
 from app.services.audit import AuditService, RequestMeta
+from app.services.budgets import BudgetService
 from app.services.categories import CategoryService
+from app.services.dashboard import DashboardService
+from app.services.forecast import ForecastService
 from app.services.transactions import TransactionService
 from app.services.transfers import TransferService
 
@@ -41,3 +45,19 @@ class Services:
     @cached_property
     def transfers(self) -> TransferService:
         return TransferService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def analytics(self) -> AnalyticsService:
+        return AnalyticsService(self.db)
+
+    @cached_property
+    def budgets(self) -> BudgetService:
+        return BudgetService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def dashboard(self) -> DashboardService:
+        return DashboardService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def forecast(self) -> ForecastService:
+        return ForecastService(self.db)

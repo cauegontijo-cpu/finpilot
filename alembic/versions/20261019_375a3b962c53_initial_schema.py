@@ -31,7 +31,7 @@ def upgrade() -> None:
     sa.Column('request_id', sa.String(length=64), nullable=True),
     sa.Column('ip_address', sa.String(length=64), nullable=True),
     sa.Column('user_agent', sa.String(length=200), nullable=True),
-    sa.Column('occurred_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('occurred_at', sa.DateTime(timezone=True), server_default=sa.text('clock_timestamp()'), nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_audit_logs'))
     )
     op.create_index('ix_audit_logs_entity', 'audit_logs', ['entity_type', 'entity_id'], unique=False)

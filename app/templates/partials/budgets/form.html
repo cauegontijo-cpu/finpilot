@@ -1,0 +1,21 @@
+{% from "components/ui.html" import money_field, alert, csrf with context %}
+{% set action = "/app/orcamentos/" ~ budget.id if budget else "/app/orcamentos" %}
+{% with title=("Editar orçamento" if budget else "Novo orçamento"), subtitle="Competência: " ~ month.label(), modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  <input type="hidden" name="month" value="{{ month.iso() }}">
+  {% if error %}{{ alert(error) }}{% endif %}
+  <div>
+    <label class="label" for="f-category_id">Categoria de despesa <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-category_id" name="category_id" class="input" {% if budget %}disabled{% endif %} required {% if errors.category_id %}aria-invalid="true" aria-describedby="e-category_id"{% endif %}>
+      <option value="">Selecione…</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if values.category_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    {% if errors.category_id %}<p id="e-category_id" class="field-error">{{ errors.category_id }}</p>{% endif %}
+  </div>
+  {{ money_field("limit", "Limite mensal", value=values.limit, errors=errors, hint="Avisos em 80% e 100% do limite.") }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/orcamentos?month={{ month.iso() }}" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

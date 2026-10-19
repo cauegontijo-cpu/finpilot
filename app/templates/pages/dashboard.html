@@ -1,0 +1,40 @@
+{% extends "layouts/app.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block head_scripts %}<script src="/static/vendor/chart.umd.min.js" defer></script>{% endblock %}
+{% block page_title %}Olá, {{ current_user.first_name }}{% endblock %}
+{% block header_actions %}
+<a href="/app/transacoes/nova" hx-get="/app/transacoes/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Lançamento</span></a>
+{% endblock %}
+{% block content %}
+<form class="mb-6 flex flex-wrap items-end gap-3" method="get" action="/app" hx-get="/app" hx-target="#dashboard-content" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#dash-loading" data-autosubmit aria-label="Filtros do dashboard">
+  <div>
+    <label class="label" for="d-m">Mês</label>
+    <select id="d-m" name="m" class="input">
+      {% for name in MONTH_NAMES %}<option value="{{ loop.index }}" {% if loop.index == d.month.month %}selected{% endif %}>{{ name|capitalize }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label" for="d-y">Ano</label>
+    <select id="d-y" name="year" class="input">
+      {% for y in years %}<option value="{{ y }}" {% if y == d.month.year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label" for="d-acc">Conta</label>
+    <select id="d-acc" name="account_id" class="input">
+      <option value="">Todas as contas</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if selected_account == a.id|string %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label" for="d-cat">Categoria</label>
+    <select id="d-cat" name="category_id" class="input">
+      <option value="">Todas as categorias</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if selected_category == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <noscript><button type="submit" class="btn btn-secondary">Aplicar</button></noscript>
+  <span id="dash-loading" class="htmx-indicator flex items-center gap-2 pb-2.5 text-xs text-muted" aria-hidden="true">{{ icon("loader-circle", "size-4 animate-spin") }} Atualizando…</span>
+</form>
+{% include "partials/dashboard/content.html" %}
+{% endblock %}
