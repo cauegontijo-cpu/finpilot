@@ -1,6 +1,6 @@
 {% from "components/ui.html" import regime, chart, progress, empty_state with context %}
 <div id="dashboard-content" class="htmx-dim space-y-6" hx-get="/app?year={{ d.month.year }}&m={{ d.month.month }}&account_id={{ selected_account }}&category_id={{ selected_category }}" hx-trigger="refresh from:body" hx-target="this" hx-swap="outerHTML">
-  <p class="text-sm text-muted">Competência de <strong class="capitalize text-fg">{{ d.month.label() }}</strong>{% if d.scope.account_id %} · filtrado por conta{% endif %}{% if d.scope.category_id %} · filtrado por categoria{% endif %}</p>
+  <p class="text-sm text-muted">Competência de <strong class="text-fg">{{ d.month.label()|capitalize }}</strong>{% if d.scope.account_id %} · filtrado por conta{% endif %}{% if d.scope.category_id %} · filtrado por categoria{% endif %}</p>
 
   {% if not d.has_data %}
   <div class="card">
@@ -87,7 +87,7 @@
       {{ chart("ch-income-expense", d.charts.income_expense, "h-72", "Gráfico de barras com receitas e despesas dos últimos 12 meses", d.tables.income_expense) }}
     </article>
     <article class="card card-pad">
-      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Gastos por categoria</h2><p class="card-sub capitalize">{{ d.month.label() }} · <span class="num normal-case">{{ d.charts.categories_total|brl }}</span></p></div>{{ regime("competencia") }}</header>
+      <header class="mb-4 flex items-center justify-between gap-2"><div><h2 class="card-title">Gastos por categoria</h2><p class="card-sub ">{{ d.month.label()|capitalize }} · <span class="num normal-case">{{ d.charts.categories_total|brl }}</span></p></div>{{ regime("competencia") }}</header>
       {% if d.charts.categories.labels %}
       {{ chart("ch-categories", d.charts.categories, "h-72", "Gráfico de rosca com a distribuição das despesas por categoria", d.tables.categories) }}
       {% else %}<p class="py-16 text-center text-sm text-muted">Sem despesas nesta competência.</p>{% endif %}

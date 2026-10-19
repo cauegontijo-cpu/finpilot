@@ -4,7 +4,7 @@
     <div class="flex items-center gap-2">
       {% if month %}
       <a class="btn-icon" href="/app/transacoes?month={{ prev_month }}" hx-get="/app/transacoes?month={{ prev_month }}" hx-target="#tx-list" hx-swap="outerHTML" hx-push-url="true" aria-label="Mês anterior">{{ icon("chevron-left") }}</a>
-      <p class="min-w-40 text-center text-sm font-semibold capitalize">{{ month.label() }}</p>
+      <p class="min-w-40 text-center text-sm font-semibold ">{{ month.label()|capitalize }}</p>
       <a class="btn-icon" href="/app/transacoes?month={{ next_month }}" hx-get="/app/transacoes?month={{ next_month }}" hx-target="#tx-list" hx-swap="outerHTML" hx-push-url="true" aria-label="Próximo mês">{{ icon("chevron-right") }}</a>
       {% elif filters.start or filters.end %}
       <p class="text-sm font-semibold">{{ filters.start|date_br }} – {{ filters.end|date_br }}</p>

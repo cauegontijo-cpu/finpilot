@@ -43,7 +43,7 @@
 
 <section class="card card-pad mt-6">
   <header class="mb-4 flex items-center justify-between"><h2 class="card-title">Saldo projetado dia a dia</h2>{{ regime("previsto") }}</header>
-  {{ chart("ch-fc", chart, "h-80", "Gráfico de linha com o saldo projetado para os próximos " ~ days ~ " dias", table) }}
+  {{ chart("ch-fc", chart_spec, "h-80", "Gráfico de linha com o saldo projetado para os próximos " ~ days ~ " dias", table) }}
   {% for w in f.warnings %}<p class="mt-2 flex items-start gap-2 text-xs text-muted">{{ icon("info", "mt-0.5 size-3.5 shrink-0") }} {{ w }}</p>{% endfor %}
 </section>
 

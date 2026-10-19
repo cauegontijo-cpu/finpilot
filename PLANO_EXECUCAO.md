@@ -28,46 +28,46 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 ## 2. Fases e checklist
 
 ### Fase 1 — Fundação
-- [ ] Estrutura de pastas, `pyproject.toml`, Ruff, mypy, pytest
-- [ ] Config validada por ambiente (`development`/`testing`/`production`)
-- [ ] Logging JSON com redação de segredos + request id
-- [ ] Banco, Base de modelos, Alembic
-- [ ] FastAPI + Jinja2 + headers de segurança + handlers globais de erro
-- [ ] Assets locais (Tailwind standalone, HTMX, Chart.js, Lucide, Inter)
-- [ ] Docker / Compose (web, migrate, postgres, db-test, redis, mailpit, scheduler)
-- [ ] Testes iniciais (health, config, money)
+- [x] Estrutura de pastas, `pyproject.toml`, Ruff, mypy, pytest
+- [x] Config validada por ambiente (`development`/`testing`/`production`)
+- [x] Logging JSON com redação de segredos + request id
+- [x] Banco, Base de modelos, Alembic
+- [x] FastAPI + Jinja2 + headers de segurança + handlers globais de erro
+- [x] Assets locais (Tailwind standalone, HTMX, Chart.js, Lucide, Inter)
+- [~] Docker / Compose — infraestrutura (postgres, db-test, redis, mailpit) validada; imagem da aplicação pendente (Fase 7)
+- [x] Testes iniciais (health, config, money)
 
 ### Fase 2 — Segurança e autenticação
-- [ ] Cadastro + aceite de política + categorias padrão
-- [ ] Verificação de e-mail (token com hash, expiração, uso único)
-- [ ] Login / sessão / rotação / logout / timeout ocioso e absoluto
-- [ ] Recuperação de senha (invalida sessões)
-- [ ] CSRF (forms + HTMX + API) e verificação de Origin
-- [ ] Rate limiting (Redis / memória em testes) → 429
-- [ ] Gerenciamento da conta: nome, e-mail (re-verificação), senha, encerrar sessões, exportar dados, excluir conta
-- [ ] Testes de segurança
+- [x] Cadastro + aceite de política + categorias padrão
+- [x] Verificação de e-mail (token com hash, expiração, uso único)
+- [x] Login / sessão / rotação / logout / timeout ocioso e absoluto
+- [x] Recuperação de senha (invalida sessões)
+- [x] CSRF (forms + HTMX + API) e verificação de Origin
+- [x] Rate limiting (Redis / memória em testes) → 429
+- [x] Gerenciamento da conta: nome, e-mail (re-verificação), senha, encerrar sessões, exportar dados, excluir conta
+- [x] Testes de segurança
 
 ### Fase 3 — Núcleo financeiro
-- [ ] Contas (RN001–RN010)
-- [ ] Categorias (unicidade, arquivamento)
-- [ ] Transações (RN011–RN020), estorno, edição consistente, histórico
-- [ ] Transferências (RN021–RN028)
-- [ ] Auditoria
-- [ ] Idempotência
-- [ ] Testes de concorrência
+- [x] Contas (RN001–RN010)
+- [x] Categorias (unicidade, arquivamento)
+- [x] Transações (RN011–RN020), estorno, edição consistente, histórico
+- [x] Transferências (RN021–RN028)
+- [x] Auditoria
+- [x] Idempotência
+- [x] Testes de concorrência
 
 ### Fase 4 — Dashboard e orçamentos
-- [ ] Orçamentos (RN029–RN037) + alertas 80%/100%
-- [ ] AnalyticsService (competência × caixa × previsto)
-- [ ] Dashboard: KPIs, 5 gráficos, filtros HTMX, estados vazios, skeletons
-- [ ] Testes de agregação
+- [x] Orçamentos (RN029–RN037) + alertas 80%/100%
+- [x] AnalyticsService (competência × caixa × previsto)
+- [x] Dashboard: KPIs, 5 gráficos, filtros HTMX, estados vazios, skeletons
+- [x] Testes de agregação
 
 ### Fase 5 — Complementares
 - [ ] Metas (RN038–RN043)
 - [ ] Recorrências + job (RN044–RN050)
 - [ ] Importação CSV (RN051–RN060)
 - [ ] Relatórios + CSV/PDF/impressão
-- [ ] Previsão de fluxo de caixa (RN071–RN077)
+- [x] Previsão de fluxo de caixa (RN071–RN077)
 
 ### Fase 6 — Cartões
 - [ ] Cartões, compras, parcelas, faturas, pagamentos, estornos, limites (RN061–RN070)
@@ -90,15 +90,19 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 | 2026-10-16 | `pyproject.toml` + `uv sync` (FastAPI 0.143, Starlette 1.8, SQLAlchemy 2.1, Pydantic 2.14, psycopg 3.3) | ok |
 | 2026-10-16 | `app/core/{config,logging,database}.py`; `app/domain/{money,dates,installments,recurrence,ledger}.py` | escritos, **ainda não testados** |
 | 2026-10-16 | `app/models/{base,user,finance,planning}.py` | escritos, **ainda não testados** |
+| 2026-10-19 | Fases 1–4 (fundação, auth, núcleo financeiro, dashboard/orçamentos/previsão) | 171 testes ok |
 
-### ▶ Ponto de retomada (pausa solicitada pelo usuário)
+### ▶ Ponto de retomada
 
+Concluído e testado até a Fase 4 (MVP) — 171 testes passando (`uv run pytest`), screenshots reais conferidas.
 Próximos passos, nesta ordem:
-1. `app/models/imports.py` (ImportBatch, ImportRow), `app/models/cards.py` (CreditCard, CardStatement, CardPurchase, CardInstallment, CardPayment), `app/models/audit.py` (AuditLog) e `app/models/__init__.py` importando todos.
-2. Alembic (`alembic.ini`, `env.py`) + migration inicial (extensão `pg_trgm`, trigger append-only da auditoria, roles `finpilot_app`/`finpilot_migrator`).
-3. `docker-compose.yml` (postgres, db-test, redis, mailpit) e `.env.example`; subir banco e aplicar migration.
-4. Testes unitários do domínio (money, installments, recurrence, dates).
-5. `app/main.py`, middlewares (request id, headers de segurança), handlers de erro, Jinja2, assets → fim da Fase 1.
+1. API REST v1 (`app/api/v1/`) reutilizando os mesmos serviços (seção 21).
+2. Fase 5: metas, recorrências + job, importação CSV, relatórios CSV/PDF.
+3. Fase 6: cartões (o modelo e as consultas `card_queries.py` já existem; dashboard/previsão já consideram faturas).
+4. Fase 7: Dockerfile, CI, docs, revisão de segurança, cobertura, seed completo.
+
+Como rodar localmente: `docker compose up -d postgres db-test redis mailpit`, `uv run alembic upgrade head`,
+`uv run python -m scripts.seed_demo`, `uv run uvicorn app.main:app --reload`.
 
 ## 4. Limitações conhecidas / bloqueios
 

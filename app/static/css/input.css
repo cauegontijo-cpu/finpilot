@@ -189,12 +189,12 @@
   .checkbox { @apply size-4 rounded border-line-strong accent-[var(--primary)]; }
 
   .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5; }
-  .badge-neutral { @apply bg-surface-3 text-fg-2; }
-  .badge-positive { @apply bg-positive-soft text-positive; }
-  .badge-negative { @apply bg-negative-soft text-negative; }
-  .badge-warning { @apply bg-warning-soft text-warning; }
-  .badge-info { @apply bg-info-soft text-info; }
-  .badge-accent { @apply bg-accent-soft text-accent; }
+  .badge-neutral { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-surface-3 text-fg-2; }
+  .badge-positive { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-positive-soft text-positive; }
+  .badge-negative { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-negative-soft text-negative; }
+  .badge-warning { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-warning-soft text-warning; }
+  .badge-info { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-info-soft text-info; }
+  .badge-accent { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold leading-5 bg-accent-soft text-accent; }
   .regime { @apply inline-flex items-center gap-1 rounded-md border border-line px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted; }
 
   .table-wrap { @apply overflow-x-auto; }

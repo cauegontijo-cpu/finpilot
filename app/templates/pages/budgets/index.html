@@ -10,7 +10,7 @@
   <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-2">
       <a class="btn-icon" href="/app/orcamentos?month={{ prev.iso() }}" aria-label="Mês anterior">{{ icon("chevron-left") }}</a>
-      <p class="min-w-44 text-center font-semibold capitalize">{{ month.label() }}</p>
+      <p class="min-w-44 text-center font-semibold ">{{ month.label()|capitalize }}</p>
       <a class="btn-icon" href="/app/orcamentos?month={{ next.iso() }}" aria-label="Próximo mês">{{ icon("chevron-right") }}</a>
     </div>
     {% if previous_count %}

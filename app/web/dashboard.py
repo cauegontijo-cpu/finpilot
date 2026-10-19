@@ -89,7 +89,7 @@ def forecast(request: Request, session: VerifiedSession, svc: Svc) -> Response:
         "f": result,
         "days": days,
         "horizons": HORIZONS,
-        "chart": chart,
+        "chart_spec": chart,
         "table": table,
         "accounts": accounts,
         "selected_account": str(account_id or ""),
