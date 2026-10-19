@@ -33,6 +33,11 @@ from app.services.accounts import AccountInput, AccountService
 from app.services.audit import AuditService, RequestMeta
 from app.services.auth import AuthService
 from app.services.budgets import BudgetService
+from app.services.card_queries import statement_balances
+from app.services.cards import CardInput, CardService, PurchaseInput
+from app.services.goals import GoalInput, GoalService
+from app.services.recurrences import RecurrenceInput, RecurrenceService
+from app.domain.recurrence import Frequency
 from app.services.transactions import TransactionInput, TransactionService
 from app.services.transfers import TransferInput, TransferService
 
@@ -52,6 +57,9 @@ class DemoBuilder:
         self.tx = TransactionService(db, self.clock, self.audit)
         self.transfers = TransferService(db, self.clock, self.audit)
         self.budgets = BudgetService(db, self.clock, self.audit)
+        self.cards = CardService(db, self.clock, self.audit)
+        self.goals = GoalService(db, self.clock, self.audit)
+        self.recurrences = RecurrenceService(db, self.clock, self.audit, get_settings().recurrence_horizon_days)
         self.cats = {
             (c.name, c.kind): c for c in db.scalars(select(Category).where(Category.user_id == user.id))
         }
@@ -159,16 +167,78 @@ class DemoBuilder:
         for when, desc, cat, cents in [
             (self.today + timedelta(days=3), "IPVA — parcela", "Transporte", 38_000),
             (self.today + timedelta(days=9), "Seguro residencial", "Moradia", 12_500),
-            (clamp_day(nxt.year, nxt.month, 10), "Aluguel do apartamento", "Moradia", 210_000),
             (clamp_day(nxt.year, nxt.month, 14), "Conta de energia", "Moradia", 21_000),
         ]:
             self.add(checking, TransactionType.EXPENSE, cat, desc, cents, when, planned=True, due=when)
-        self.add(checking, TransactionType.INCOME, "Salário", "Salário — Empresa Exemplo Ltda.", 780_000, clamp_day(nxt.year, nxt.month, 5), planned=True)
         self.add(digital, TransactionType.INCOME, "Reembolsos", "Reembolso de despesas de viagem", 34_000, self.today + timedelta(days=6), planned=True)
+
+        self._cards(checking, start_month)
+        self._recurrences(checking, digital, nxt)
+        self._goals(start_month)
 
         for month in (current.shift(-1), current):
             for name, limit in [("Alimentação", 160_000), ("Transporte", 45_000), ("Lazer", 30_000), ("Assinaturas", 9_000), ("Moradia", 260_000), ("Compras", 50_000), ("Educação", 45_000)]:
                 self.budgets.create(self.user.id, self.cat(name), month, limit)
+
+    def _cards(self, checking: Account, start_month: Month) -> None:
+        roxo = self.cards.create(self.user.id, CardInput("Nubank Mastercard", 1_500_000, 3, 10, "Nubank", "4821", "#8b5cf6"))
+        visa = self.cards.create(self.user.id, CardInput("Inter Visa", 600_000, 25, 5, "Banco Inter", "1937", "#f97316"))
+        purchases = [
+            (roxo, "Compras", "Notebook de trabalho", 540_000, 10, 2),
+            (roxo, "Saúde", "Óculos de grau", 89_000, 2, 5),
+            (roxo, "Lazer", "Passagens aéreas", 162_000, 6, 7),
+            (visa, "Alimentação", "Mercado do mês", 61_230, 1, 9),
+            (visa, "Transporte", "Revisão do carro", 128_000, 4, 8),
+            (visa, "Compras", "Fone bluetooth", 29_990, 3, 10),
+        ]
+        for card, cat, desc, cents, n, offset in purchases:
+            month = start_month.shift(offset)
+            when = clamp_day(month.year, month.month, 14)
+            if when <= self.today:
+                self.cards.purchase(self.user.id, str(card.id), PurchaseInput(self.cat(cat), desc, when, cents, n), idempotency_key=uuid.uuid4().hex)
+        for i in range(12):
+            month = start_month.shift(i)
+            when = clamp_day(month.year, month.month, 20)
+            if when <= self.today:
+                self.cards.purchase(self.user.id, str(visa.id), PurchaseInput(self.cat("Assinaturas"), "Assinatura de software", when, 3_990, 1), idempotency_key=uuid.uuid4().hex)
+                self.cards.purchase(self.user.id, str(roxo.id), PurchaseInput(self.cat("Alimentação"), self.rng.choice(["Delivery", "Restaurante"]), when - timedelta(days=6), self.money(4_000, 15_000), 1), idempotency_key=uuid.uuid4().hex)
+        # Paga as faturas já vencidas; a mais recente de um cartão fica parcialmente paga.
+        for card in (roxo, visa):
+            due = [b for b in statement_balances(self.db, self.user.id, card_id=card.id) if b.due_date <= self.today and b.remaining_cents > 0]
+            for idx, b in enumerate(due):
+                partial = card is visa and idx == len(due) - 1
+                amount = b.remaining_cents // 2 if partial else b.remaining_cents
+                self.cards.pay(self.user.id, str(b.statement_id), checking.id, amount, b.due_date, idempotency_key=uuid.uuid4().hex)
+
+    def _recurrences(self, checking: Account, digital: Account, nxt: Month) -> None:
+        start = clamp_day(nxt.year, nxt.month, 1)
+        for account, tx_type, cat, desc, cents, day in [
+            (checking, TransactionType.INCOME, "Salário", "Salário — Empresa Exemplo Ltda.", 780_000, 5),
+            (checking, TransactionType.EXPENSE, "Moradia", "Aluguel do apartamento", 210_000, 10),
+            (checking, TransactionType.EXPENSE, "Moradia", "Internet fibra", 11_990, 15),
+            (checking, TransactionType.EXPENSE, "Assinaturas", "Streaming de vídeo", 5_590, 12),
+            (checking, TransactionType.EXPENSE, "Educação", "Curso de inglês", 45_000, 8),
+            (digital, TransactionType.EXPENSE, "Saúde", "Academia", 11_900, 31),
+        ]:
+            kind = CategoryKind.INCOME if tx_type is TransactionType.INCOME else CategoryKind.EXPENSE
+            self.recurrences.create(
+                self.user.id,
+                RecurrenceInput(tx_type, account.id, self.cat(cat, kind), desc, cents, Frequency.MONTHLY,
+                                clamp_day(start.year, start.month, day) if day <= 28 else clamp_day(start.year, start.month, 31)),
+            )
+
+    def _goals(self, start_month: Month) -> None:
+        plans = [
+            ("Reserva de emergência", 3_000_000, None, "shield-check", "#10b981", 150_000),
+            ("Viagem para o Chile", 1_200_000, Month.of(self.today).shift(8).last_day, "plane", "#0ea5e9", 90_000),
+            ("Novo computador", 900_000, Month.of(self.today).shift(4).last_day, "laptop", "#6366f1", 120_000),
+        ]
+        for name, target, deadline, icon, color, monthly in plans:
+            goal = self.goals.create(self.user.id, GoalInput(name, target, deadline, None, color, icon))
+            for i in range(0, 12, 2 if monthly > 100_000 else 1):
+                when = clamp_day(start_month.shift(i).year, start_month.shift(i).month, 26)
+                if when <= self.today:
+                    self.goals.allocate(self.user.id, str(goal.id), monthly, when, "Reserva mensal")
 
     def reconcile(self) -> None:
         for account in self.db.scalars(select(Account).where(Account.user_id == self.user.id)):
