@@ -1,0 +1,95 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import field, password_field, alert, csrf %}
+{% block title %}Configurações{% endblock %}
+{% block page_title %}Configurações{% endblock %}
+{% block content %}
+<div class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[220px_1fr]">
+  <nav class="hidden lg:block" aria-label="Seções">
+    <ul class="sticky top-24 space-y-1 text-sm">
+      {% for anchor, label, ic in [("perfil", "Perfil", "user"), ("email", "E-mail", "mail"), ("senha", "Senha", "lock"), ("sessoes", "Sessões ativas", "monitor-smartphone"), ("dados", "Seus dados", "download"), ("excluir", "Excluir conta", "trash-2")] %}
+      <li><a href="#{{ anchor }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-fg-2 hover:bg-surface-3">{{ icon(ic) }} {{ label }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  <div class="space-y-6">
+    <section id="perfil" class="card card-pad" aria-labelledby="h-perfil">
+      <h2 id="h-perfil" class="text-base font-semibold">Perfil</h2>
+      <p class="card-sub mt-1">Seu nome é exibido apenas para você.</p>
+      <form method="post" action="/app/configuracoes/perfil" class="mt-5 space-y-4" novalidate>
+        {{ csrf() }}
+        {% if section_error.profile %}{{ alert(section_error.profile) }}{% endif %}
+        {{ field("full_name", "Nome completo", value=current_user.full_name, errors=errors, required=True, autocomplete="name", maxlength=120) }}
+        <div class="flex justify-end"><button type="submit" class="btn btn-primary">Salvar</button></div>
+      </form>
+    </section>
+
+    <section id="email" class="card card-pad" aria-labelledby="h-email">
+      <h2 id="h-email" class="text-base font-semibold">E-mail</h2>
+      <p class="card-sub mt-1">Atual: <strong class="text-fg">{{ current_user.email }}</strong> · A troca só é concluída após confirmação no novo endereço.</p>
+      <form method="post" action="/app/configuracoes/email" class="mt-5 grid gap-4 sm:grid-cols-2" novalidate>
+        {{ csrf() }}
+        {% if section_error.email %}<div class="sm:col-span-2">{{ alert(section_error.email) }}</div>{% endif %}
+        {{ field("email", "Novo e-mail", type="email", errors=errors, required=True, autocomplete="email", maxlength=254) }}
+        {{ password_field("password", "Senha atual", errors=errors) }}
+        <div class="flex justify-end sm:col-span-2"><button type="submit" class="btn btn-secondary">{{ icon("mail") }} Enviar confirmação</button></div>
+      </form>
+    </section>
+
+    <section id="senha" class="card card-pad" aria-labelledby="h-senha">
+      <h2 id="h-senha" class="text-base font-semibold">Senha</h2>
+      <p class="card-sub mt-1">Ao alterar a senha, as demais sessões são encerradas.</p>
+      <form method="post" action="/app/configuracoes/senha" class="mt-5 grid gap-4 sm:grid-cols-3" novalidate>
+        {{ csrf() }}
+        {% if section_error.password %}<div class="sm:col-span-3">{{ alert(section_error.password) }}</div>{% endif %}
+        {{ password_field("current_password", "Senha atual", errors=errors) }}
+        {{ password_field("password", "Nova senha", errors=errors, autocomplete="new-password") }}
+        {{ password_field("password_confirm", "Confirmar", errors=errors, autocomplete="new-password") }}
+        <div class="flex justify-end sm:col-span-3"><button type="submit" class="btn btn-primary">{{ icon("key-round") }} Alterar senha</button></div>
+      </form>
+    </section>
+
+    <section id="sessoes" class="card" aria-labelledby="h-sessoes">
+      <div class="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
+        <div><h2 id="h-sessoes" class="text-base font-semibold">Sessões ativas</h2><p class="card-sub mt-1">Dispositivos com acesso à sua conta.</p></div>
+        {% if sessions|length > 1 %}
+        <form method="post" action="/app/configuracoes/sessoes/encerrar-outras">{{ csrf() }}<button type="submit" class="btn btn-secondary btn-sm" data-confirm="Encerrar todas as outras sessões?">{{ icon("log-out") }} Encerrar outras sessões</button></form>
+        {% endif %}
+      </div>
+      <ul class="divide-y divide-line border-t border-line">
+        {% for s in sessions %}
+        <li class="flex items-center gap-4 px-5 py-4 sm:px-6">
+          <span class="inline-flex size-10 items-center justify-center rounded-xl bg-surface-3 text-muted">{{ icon("monitor-smartphone", "size-5") }}</span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium">{{ s.user_agent or "Dispositivo desconhecido" }}</p>
+            <p class="text-xs text-muted">IP {{ s.ip_address or "—" }} · último acesso {{ s.last_seen_at|date_br }}</p>
+          </div>
+          {% if s.id == current_session_id %}
+          <span class="badge-positive">Esta sessão</span>
+          {% else %}
+          <form method="post" action="/app/configuracoes/sessoes/{{ s.id }}/encerrar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm">Encerrar</button></form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section id="dados" class="card card-pad" aria-labelledby="h-dados">
+      <h2 id="h-dados" class="text-base font-semibold">Seus dados</h2>
+      <p class="card-sub mt-1">Baixe todos os seus dados pessoais e financeiros em JSON (portabilidade).</p>
+      <form method="post" action="/app/configuracoes/exportar" class="mt-5">{{ csrf() }}<button type="submit" class="btn btn-secondary">{{ icon("download") }} Exportar meus dados</button></form>
+    </section>
+
+    <section id="excluir" class="card card-pad border-negative/40" aria-labelledby="h-excluir">
+      <h2 id="h-excluir" class="text-base font-semibold text-negative">Excluir conta</h2>
+      <p class="card-sub mt-1">Remove definitivamente sua conta e todos os dados financeiros. Esta ação não pode ser desfeita.</p>
+      <form method="post" action="/app/configuracoes/excluir-conta" class="mt-5 grid gap-4 sm:grid-cols-2" novalidate>
+        {{ csrf() }}
+        {% if section_error.delete %}<div class="sm:col-span-2">{{ alert(section_error.delete) }}</div>{% endif %}
+        {{ field("email_confirmation", "Digite seu e-mail para confirmar", errors=errors, required=True, autocomplete="off", maxlength=254) }}
+        {{ password_field("password", "Senha atual", errors=errors) }}
+        <div class="flex justify-end sm:col-span-2"><button type="submit" class="btn btn-danger" data-confirm="Excluir definitivamente sua conta e todos os dados?">{{ icon("trash-2") }} Excluir minha conta</button></div>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

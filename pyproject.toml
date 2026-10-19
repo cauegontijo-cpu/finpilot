@@ -79,7 +79,10 @@ markers = [
     "e2e: testes de ponta a ponta com navegador (Playwright) contra a aplicação em execução",
     "concurrency: testes com múltiplas conexões reais ao PostgreSQL",
 ]
-filterwarnings = ["error::DeprecationWarning:app.*"]
+filterwarnings = [
+    "error::DeprecationWarning:app.*",
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
 
 [tool.coverage.run]
 branch = true
