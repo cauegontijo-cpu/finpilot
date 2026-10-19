@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<body style="margin:0;background:#f1f5f9;font-family:Inter,Segoe UI,Arial,sans-serif;color:#0f172a">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:32px 12px">
+    <tr><td align="center">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden">
+        <tr><td style="background:#0b1b3f;color:#ffffff;padding:20px 28px;font-size:18px;font-weight:700">{{ app_name }}</td></tr>
+        <tr><td style="padding:28px;font-size:15px;line-height:1.6">
+          <h1 style="font-size:20px;margin:0 0 16px">{{ subject }}</h1>
+          {% block body %}{% endblock %}
+        </td></tr>
+        <tr><td style="padding:16px 28px;background:#f8fafc;color:#64748b;font-size:12px">
+          Você recebeu este e-mail porque há uma conta {{ app_name }} associada a este endereço. Nunca pedimos sua senha por e-mail.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

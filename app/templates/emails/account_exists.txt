@@ -1,0 +1,7 @@
+Olá, {{ name }}.
+
+Alguém tentou criar uma conta com este e-mail, que já está cadastrado.
+Se foi você, faça login ou recupere sua senha: {{ link }}
+Se não foi você, ignore esta mensagem.
+
+— Equipe {{ app_name }}

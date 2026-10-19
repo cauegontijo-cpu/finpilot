@@ -1,0 +1,8 @@
+Olá, {{ name }}.
+
+Para ativar sua conta, acesse o link abaixo (expira em {{ hours }} horas, uso único):
+{{ link }}
+
+Se você não criou uma conta, ignore esta mensagem.
+
+— Equipe {{ app_name }}

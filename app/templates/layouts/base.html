@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="{{ theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"includeIndicatorStyles":false,"selfRequestsOnly":true,"historyCacheSize":0,"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":false,"error":true}]}'>
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}{{ app_name }}{% endblock %} · {{ app_name }}</title>
+  <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+  {% block head_scripts %}{% endblock %}
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body class="{% block body_class %}bg-bg text-fg{% endblock %}">
+  <a href="#conteudo" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn btn-primary">Pular para o conteúdo</a>
+  {% block body %}{% endblock %}
+  <div id="toasts" class="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(380px,calc(100vw-2rem))] flex-col gap-2" aria-live="polite"></div>
+  {% if flash %}
+  <template id="flash" data-kind="{{ flash.kind }}">{{ flash.message }}</template>
+  {% endif %}
+  {% include "components/confirm_dialog.html" %}
+</body>
+</html>

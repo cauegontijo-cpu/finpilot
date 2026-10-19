@@ -1,0 +1,23 @@
+{% extends "layouts/base.html" %}
+{% block body %}
+<header class="sticky top-0 z-30 border-b border-line/70 bg-bg/85 backdrop-blur">
+  <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <a href="/" class="flex items-center gap-2.5 text-lg font-bold">{% include "components/logo.html" %} FinPilot</a>
+    <nav class="flex items-center gap-2" aria-label="Principal">
+      {% if current_user %}
+      <a href="/app" class="btn btn-primary">{{ icon("layout-dashboard") }} Abrir painel</a>
+      {% else %}
+      <a href="/login" class="btn btn-ghost">Entrar</a>
+      <a href="/cadastro" class="btn btn-primary">Criar conta</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+<main id="conteudo">{% block content %}{% endblock %}</main>
+<footer class="border-t border-line">
+  <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <p>© 2026 FinPilot · Projeto de portfólio — não é uma instituição financeira.</p>
+    <nav class="flex gap-4" aria-label="Rodapé"><a class="hover:text-fg" href="/privacidade">Privacidade</a><a class="hover:text-fg" href="/termos">Termos</a></nav>
+  </div>
+</footer>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+<p>Olá, {{ name }}.</p>
+<p>Foi solicitada a troca do e-mail da sua conta para <strong>{{ masked }}</strong>. A troca só ocorre após confirmação no novo endereço. Se não foi você, altere sua senha.</p>
+{% endblock %}

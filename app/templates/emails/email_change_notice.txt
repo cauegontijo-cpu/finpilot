@@ -1,0 +1,5 @@
+Olá, {{ name }}.
+
+Foi solicitada a troca do e-mail da sua conta para {{ masked }}. A troca só ocorre após confirmação no novo endereço. Se não foi você, altere sua senha.
+
+— Equipe {{ app_name }}

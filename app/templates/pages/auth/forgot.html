@@ -1,0 +1,19 @@
+{% extends "layouts/auth.html" %}
+{% from "components/ui.html" import field, alert, csrf %}
+{% block title %}Recuperar senha{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold tracking-tight">Recuperar senha</h1>
+{% if sent %}
+<div class="mt-6">{{ alert("Se houver uma conta com esse e-mail, enviaremos um link de redefinição em instantes. O link expira e pode ser usado uma única vez.", "success") }}</div>
+<a href="/login" class="btn btn-secondary mt-8 w-full">Voltar ao login</a>
+{% else %}
+<p class="mt-1 text-sm text-muted">Informe o e-mail da sua conta para receber um link de redefinição.</p>
+<form method="post" action="/recuperar-senha" class="mt-8 space-y-5" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {{ field("email", "E-mail", type="email", required=True, autocomplete="email", maxlength=254) }}
+  <button type="submit" class="btn btn-primary w-full">{{ icon("mail") }} Enviar link</button>
+</form>
+<p class="mt-8 text-center text-sm text-muted"><a class="link" href="/login">Voltar ao login</a></p>
+{% endif %}
+{% endblock %}

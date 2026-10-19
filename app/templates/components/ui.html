@@ -1,0 +1,151 @@
+{# Macros de componentes reutilizáveis. #}
+
+{% macro field(name, label, value="", type="text", errors={}, hint=None, required=False, autocomplete=None, placeholder=None, inputmode=None, maxlength=None, min=None, max=None, step=None) -%}
+{% set err = errors.get(name) if errors else None %}
+<div>
+  <label class="label" for="f-{{ name }}">{{ label }}{% if required %} <span class="text-negative" aria-hidden="true">*</span>{% endif %}</label>
+  <input id="f-{{ name }}" name="{{ name }}" type="{{ type }}" class="input{% if inputmode == 'decimal' or type == 'number' %} num{% endif %}"
+    value="{{ value if value is not none else '' }}"
+    {%- if required %} required{% endif %}
+    {%- if autocomplete %} autocomplete="{{ autocomplete }}"{% endif %}
+    {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}
+    {%- if inputmode %} inputmode="{{ inputmode }}"{% endif %}
+    {%- if maxlength %} maxlength="{{ maxlength }}"{% endif %}
+    {%- if min is not none %} min="{{ min }}"{% endif %}
+    {%- if max is not none %} max="{{ max }}"{% endif %}
+    {%- if step %} step="{{ step }}"{% endif %}
+    {%- if err %} aria-invalid="true" aria-describedby="e-{{ name }}"{% elif hint %} aria-describedby="h-{{ name }}"{% endif %}>
+  {% if err %}<p id="e-{{ name }}" class="field-error">{{ err }}</p>{% elif hint %}<p id="h-{{ name }}" class="hint">{{ hint }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro money_field(name, label, value="", errors={}, hint=None, required=True, allow_negative=False) -%}
+{{ field(name, label, value=value, errors=errors, hint=hint or "Ex.: 1.234,56", required=required, inputmode="decimal", placeholder="0,00", maxlength=20, autocomplete="off") }}
+{%- endmacro %}
+
+{% macro password_field(name, label, errors={}, autocomplete="current-password", hint=None) -%}
+{% set err = errors.get(name) if errors else None %}
+<div>
+  <label class="label" for="f-{{ name }}">{{ label }} <span class="text-negative" aria-hidden="true">*</span></label>
+  <div class="relative">
+    <input id="f-{{ name }}" name="{{ name }}" type="password" class="input pr-11" required autocomplete="{{ autocomplete }}" maxlength="128"
+      {%- if err %} aria-invalid="true" aria-describedby="e-{{ name }}"{% elif hint %} aria-describedby="h-{{ name }}"{% endif %}>
+    <button type="button" class="btn-icon absolute right-1 top-1/2 -translate-y-1/2" data-toggle-password="f-{{ name }}" aria-label="Mostrar senha" aria-pressed="false">{{ icon("eye") }}</button>
+  </div>
+  {% if err %}<p id="e-{{ name }}" class="field-error">{{ err }}</p>{% elif hint %}<p id="h-{{ name }}" class="hint">{{ hint }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro select(name, label, options, selected=None, errors={}, required=False, placeholder=None) -%}
+{% set err = errors.get(name) if errors else None %}
+<div>
+  <label class="label" for="f-{{ name }}">{{ label }}{% if required %} <span class="text-negative" aria-hidden="true">*</span>{% endif %}</label>
+  <select id="f-{{ name }}" name="{{ name }}" class="input" {% if required %}required{% endif %} {% if err %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+    {% if placeholder %}<option value="">{{ placeholder }}</option>{% endif %}
+    {% for value, text in options %}
+    <option value="{{ value }}" {% if selected is not none and value|string == selected|string %}selected{% endif %}>{{ text }}</option>
+    {% endfor %}
+  </select>
+  {% if err %}<p id="e-{{ name }}" class="field-error">{{ err }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro textarea(name, label, value="", errors={}, rows=3, maxlength=1000) -%}
+<div>
+  <label class="label" for="f-{{ name }}">{{ label }}</label>
+  <textarea id="f-{{ name }}" name="{{ name }}" rows="{{ rows }}" maxlength="{{ maxlength }}" class="input">{{ value or "" }}</textarea>
+  {% if errors and errors.get(name) %}<p class="field-error">{{ errors.get(name) }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro checkbox(name, label, checked=False, errors={}, hint=None) -%}
+{% set err = errors.get(name) if errors else None %}
+<div>
+  <label class="flex items-start gap-2.5 text-sm text-fg-2">
+    <input type="checkbox" name="{{ name }}" value="true" class="checkbox mt-0.5" {% if checked %}checked{% endif %} {% if err %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+    <span>{{ label }}{% if hint %}<span class="block text-xs text-muted">{{ hint }}</span>{% endif %}</span>
+  </label>
+  {% if err %}<p id="e-{{ name }}" class="field-error">{{ err }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro alert(message, kind="error") -%}
+{% set tones = {"error": "border-negative/30 bg-negative-soft text-negative", "success": "border-positive/30 bg-positive-soft text-positive", "warning": "border-warning/30 bg-warning-soft text-warning", "info": "border-info/30 bg-info-soft text-info"} %}
+{% set icons = {"error": "circle-alert", "success": "circle-check", "warning": "triangle-alert", "info": "info"} %}
+<div class="flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm {{ tones[kind] }}" role="{{ 'alert' if kind == 'error' else 'status' }}">
+  {{ icon(icons[kind], "mt-0.5 size-4 shrink-0") }}<p>{{ message }}</p>
+</div>
+{%- endmacro %}
+
+{% macro empty_state(title, text, icon_name="inbox", action_url=None, action_label=None, dialog_id=None) -%}
+<div class="flex flex-col items-center justify-center px-6 py-14 text-center">
+  <span class="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">{{ icon(icon_name, "size-6") }}</span>
+  <h3 class="text-base font-semibold">{{ title }}</h3>
+  <p class="mt-1 max-w-sm text-sm text-muted">{{ text }}</p>
+  {% if action_url and action_label %}
+  <a href="{{ action_url }}" class="btn btn-primary mt-5" {% if dialog_id %}hx-get="{{ action_url }}" hx-target="#{{ dialog_id }}-body" data-open-dialog="{{ dialog_id }}"{% endif %}>{{ icon("plus") }} {{ action_label }}</a>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro progress(pct, tone="primary", planned_pct=0, label="Progresso") -%}
+{% set width = [[pct, 0]|max, 100]|min %}
+{% set total = [[pct + planned_pct, 0]|max, 100]|min %}
+{% set color = {"primary": "bg-primary", "positive": "bg-positive", "warning": "bg-warning", "negative": "bg-negative", "accent": "bg-accent"}[tone] %}
+<div class="progress" role="progressbar" aria-label="{{ label }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ width|round(0)|int }}">
+  {% if planned_pct %}<span class="{{ color }} bar-planned opacity-40 {{ width_class(total) }}"></span>{% endif %}
+  <span class="{{ color }} {{ width_class(width) }}"></span>
+</div>
+{%- endmacro %}
+
+{% macro amount(cents, kind=None, signed=False, cls="") -%}
+{% set tone = "amount-positive" if kind == "in" else ("amount-negative" if kind == "out" else "") %}
+<span class="num {{ tone }} {{ cls }}">{{ cents|brl(signed) }}</span>
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+{% set map = {"planned": "badge-info", "settled": "badge-positive", "cancelled": "badge-neutral"} %}
+<span class="{{ map.get(status.value, 'badge-neutral') }}">{{ STATUS_LABELS[status] }}</span>
+{%- endmacro %}
+
+{% macro idem() -%}
+<input type="hidden" name="idempotency_key" value="{{ new_key() }}">
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{%- endmacro %}
+
+{% macro regime(kind) -%}
+{% set labels = {"competencia": "Competência", "caixa": "Caixa", "previsto": "Projetado", "saldo": "Saldo realizado", "gerencial": "Gerencial"} %}
+<span class="regime" title="Regime utilizado neste indicador">{{ labels[kind] }}</span>
+{%- endmacro %}
+
+{% macro pagination(page_obj, base_query, target="#list") -%}
+{% if page_obj.pages > 1 %}
+<nav class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm" aria-label="Paginação">
+  <p class="text-muted">Página <span class="num font-medium text-fg">{{ page_obj.page }}</span> de <span class="num">{{ page_obj.pages }}</span> · <span class="num">{{ page_obj.total }}</span> registros</p>
+  <div class="flex gap-2">
+    {% if page_obj.has_prev %}<a class="btn btn-secondary btn-sm" href="?{{ base_query }}&page={{ page_obj.page - 1 }}" hx-get="?{{ base_query }}&page={{ page_obj.page - 1 }}" hx-target="{{ target }}" hx-select="{{ target }}" hx-swap="outerHTML" hx-push-url="true">{{ icon("chevron-left") }} Anterior</a>{% endif %}
+    {% if page_obj.has_next %}<a class="btn btn-secondary btn-sm" href="?{{ base_query }}&page={{ page_obj.page + 1 }}" hx-get="?{{ base_query }}&page={{ page_obj.page + 1 }}" hx-target="{{ target }}" hx-select="{{ target }}" hx-swap="outerHTML" hx-push-url="true">Próxima {{ icon("chevron-right") }}</a>{% endif %}
+  </div>
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro chart(id, spec, height="h-72", label="Gráfico", table=None) -%}
+<div class="relative {{ height }}">
+  <canvas data-chart="{{ id }}-data" role="img" aria-label="{{ label }}"></canvas>
+</div>
+<script type="application/json" id="{{ id }}-data">{{ spec|tojson_script }}</script>
+{% if table %}
+<button type="button" class="mt-3 text-xs font-semibold text-primary hover:underline" data-toggle-table="{{ id }}-table" aria-expanded="false" aria-controls="{{ id }}-table">Ver tabela de dados</button>
+<div id="{{ id }}-table" class="table-wrap mt-2" hidden>
+  <table class="table text-xs">
+    <caption class="sr-only">{{ label }}</caption>
+    <thead><tr>{% for h in table.headers %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in table.rows %}<tr>{% for c in row %}<td class="{{ 'num' if not loop.first }}">{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+{%- endmacro %}

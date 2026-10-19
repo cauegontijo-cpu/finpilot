@@ -1,0 +1,12 @@
+{% extends "layouts/public.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="mx-auto flex max-w-xl flex-col items-center px-4 py-24 text-center">
+  <span class="num text-6xl font-bold tracking-tight text-primary">{{ status }}</span>
+  <h1 class="mt-4 text-2xl font-bold">{{ title }}</h1>
+  <p class="mt-2 text-sm text-muted">{{ detail }}</p>
+  <div class="mt-8 flex gap-3">
+    <a href="{{ '/app' if current_user else '/' }}" class="btn btn-primary">{{ icon("house") }} Voltar ao início</a>
+  </div>
+</section>
+{% endblock %}

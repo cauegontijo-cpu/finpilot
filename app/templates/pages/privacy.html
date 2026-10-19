@@ -1,0 +1,15 @@
+{% extends "layouts/public.html" %}
+{% block title %}Política de privacidade{% endblock %}
+{% block content %}
+<article class="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+  <h1 class="text-3xl font-bold tracking-tight">Política de privacidade</h1>
+  <p class="mt-2 text-sm text-muted">Versão 2026-10 · Este é um projeto de portfólio. O texto descreve as práticas técnicas adotadas e não constitui declaração de conformidade jurídica.</p>
+  <div class="mt-8 space-y-6 text-sm leading-relaxed text-fg-2">
+    <section><h2 class="mb-2 text-lg font-semibold text-fg">1. Dados coletados</h2><p>Nome, e-mail, senha (armazenada somente como hash Argon2id) e os dados financeiros que você mesmo cadastra: contas, lançamentos, cartões (apenas os 4 últimos dígitos, nunca o número completo, CVV ou senhas), orçamentos, metas e arquivos CSV importados.</p></section>
+    <section><h2 class="mb-2 text-lg font-semibold text-fg">2. Finalidade</h2><p>Os dados são utilizados exclusivamente para prestar as funcionalidades de gestão financeira. Não há compartilhamento com terceiros, publicidade ou integração bancária.</p></section>
+    <section><h2 class="mb-2 text-lg font-semibold text-fg">3. Minimização e segurança</h2><p>Registros técnicos armazenam endereço IP truncado e user-agent resumido. Logs não contêm senhas, tokens ou valores financeiros. Tokens de sessão e de recuperação são guardados apenas como hash.</p></section>
+    <section><h2 class="mb-2 text-lg font-semibold text-fg">4. Retenção</h2><p>Os dados permanecem enquanto a conta existir. Ao excluir a conta, todos os dados financeiros são removidos imediatamente. A trilha de auditoria é mantida de forma pseudonimizada (sem nome ou e-mail) pelo período de retenção configurado, para fins de segurança e rastreabilidade.</p></section>
+    <section><h2 class="mb-2 text-lg font-semibold text-fg">5. Seus direitos</h2><p>Em Configurações você pode corrigir seus dados, exportar todos os seus dados pessoais e financeiros e excluir definitivamente a sua conta.</p></section>
+  </div>
+</article>
+{% endblock %}
