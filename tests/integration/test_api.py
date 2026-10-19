@@ -156,3 +156,55 @@ def test_openapi_documentation_available(client: TestClient) -> None:
     for path in ["/api/v1/accounts", "/api/v1/transactions", "/api/v1/transfers", "/api/v1/budgets", "/api/v1/dashboard"]:
         assert path in paths
     assert not any(p.startswith("/app") for p in paths)  # páginas HTML fora da documentação
+
+
+def test_planning_cards_imports_reports_api(client: TestClient, user: Any, db: Session) -> None:
+    _login(client, user.email)
+    account = make_account(db, user, initial=500_000)
+    goal = api(client, "POST", "/api/v1/goals", json={"name": "Viagem", "target_cents": 100_000})
+    assert goal.status_code == 201
+    alloc = api(client, "POST", f"/api/v1/goals/{goal.json()['id']}/allocations", json={"amount_cents": 25_000})
+    assert alloc.status_code == 201
+    assert client.get(f"/api/v1/goals/{goal.json()['id']}").json()["allocated_cents"] == 25_000
+
+    rec = api(client, "POST", "/api/v1/recurrences", json={
+        "type": "expense", "account_id": str(account.id), "category_id": str(category(db, user, "Moradia").id),
+        "description": "Aluguel", "amount_cents": 150_000, "frequency": "monthly", "start_date": "2026-11-10",
+    })
+    assert rec.status_code == 201
+    assert len(client.get(f"/api/v1/recurrences/{rec.json()['id']}/next", params={"count": 3}).json()) == 3
+    assert api(client, "POST", f"/api/v1/recurrences/{rec.json()['id']}/pause").json()["status"] == "paused"
+
+    card = api(client, "POST", "/api/v1/cards", json={"name": "Visa", "limit_cents": 300_000, "closing_day": 25, "due_day": 5, "last4": "9876"})
+    assert card.status_code == 201
+    bad_card = api(client, "POST", "/api/v1/cards", json={"name": "X", "limit_cents": 1, "closing_day": 1, "due_day": 1, "last4": "4111111111111111"})
+    assert bad_card.status_code == 422
+    purchase = api(
+        client, "POST", f"/api/v1/cards/{card.json()['id']}/purchases",
+        json={"category_id": str(category(db, user, "Compras").id), "description": "Fone", "purchase_date": "2026-09-10", "total_cents": 10_000, "installments": 3},
+        headers={"Idempotency-Key": "purchase-api-0001"},
+    )
+    assert purchase.status_code == 201
+    assert [i["amount_cents"] for i in purchase.json()["installments"]] == [3_334, 3_333, 3_333]
+    statements = client.get(f"/api/v1/cards/{card.json()['id']}/statements").json()
+    first = statements[0]
+    pay = api(client, "POST", f"/api/v1/statements/{first['statement_id']}/payments",
+              json={"account_id": str(account.id), "amount_cents": first["remaining_cents"], "payment_date": "2026-10-01"},
+              headers={"Idempotency-Key": "payment-api-0001"})
+    assert pay.status_code == 201
+    assert client.get(f"/api/v1/statements/{first['statement_id']}").json()["status"] == "paid"
+
+    csv_content = "Data;Descrição;Valor\n01/10/2026;Venda;100,00\n"
+    upload = client.post("/api/v1/imports", data={"account_id": str(account.id)}, files={"file": ("x.csv", csv_content.encode(), "text/csv")},
+                         headers={"X-CSRF-Token": __import__("tests.conftest", fromlist=["csrf_for"]).csrf_for(client)})
+    assert upload.status_code == 201
+    batch_id = upload.json()["id"]
+    assert api(client, "POST", f"/api/v1/imports/{batch_id}/mapping", json={"date_col": 0, "description_col": 1, "amount_col": 2}).json()["valid"] == 1
+    rows = [r["id"] for r in client.get(f"/api/v1/imports/{batch_id}/rows").json() if r["selected"]]
+    confirm = api(client, "POST", f"/api/v1/imports/{batch_id}/confirm", json={"row_ids": rows}, headers={"Idempotency-Key": "confirm-api-0001"})
+    assert confirm.json()["importadas"] == 1
+
+    report = client.get("/api/v1/reports/receitas-despesas", params={"start": "2026-09", "end": "2026-10"})
+    assert report.status_code == 200 and report.json()["regime"] == "Competência"
+    pdf = client.get("/api/v1/reports/cartoes", params={"start": "2026-09", "end": "2026-12", "format": "pdf"})
+    assert pdf.content.startswith(b"%PDF")

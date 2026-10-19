@@ -1,0 +1,25 @@
+{% from "components/ui.html" import field, money_field, alert, csrf, idem with context %}
+{% with title="Nova compra — " ~ card.name, subtitle="Parcelas exatas ao centavo, distribuídas nas faturas.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="/app/cartoes/{{ card.id }}/compras" hx-post="/app/cartoes/{{ card.id }}/compras" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}{{ idem() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {{ field("description", "Descrição", value=values.description, errors=errors, required=True, maxlength=140, placeholder="Ex.: Notebook") }}
+  <div>
+    <label class="label" for="f-category_id">Categoria <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-category_id" name="category_id" class="input" required>
+      <option value="">Selecione…</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if values.category_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    {% if errors.category_id %}<p class="field-error">{{ errors.category_id }}</p>{% endif %}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-3">
+    {{ money_field("amount", "Valor total", value=values.amount, errors=errors) }}
+    {{ field("installments", "Parcelas", value=values.installments or "1", type="number", errors=errors, min=1, max=48) }}
+    {{ field("purchase_date", "Data da compra", value=values.purchase_date, type="date", errors=errors, required=True) }}
+  </div>
+  <div id="simulation" hx-get="/app/cartoes/{{ card.id }}/compras/simular" hx-trigger="load, change from:closest form, keyup delay:500ms from:closest form" hx-include="closest form" hx-target="this" aria-live="polite"></div>
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/cartoes/{{ card.id }}" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("shopping-cart") }} Registrar compra</button>
+  </div>
+</form>

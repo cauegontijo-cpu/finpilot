@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import csrf with context %}
+{% block title %}{{ card.name }}{% endblock %}
+{% block page_title %}<a href="/app/cartoes" class="text-muted hover:text-fg">Cartões</a> <span class="text-muted">/</span> {{ card.name }}{% endblock %}
+{% block header_actions %}
+<a href="/app/cartoes/{{ card.id }}/editar" hx-get="/app/cartoes/{{ card.id }}/editar" hx-target="#drawer-body" class="btn btn-secondary">{{ icon("pencil") }}<span class="hidden sm:inline">Editar</span></a>
+<a href="/app/cartoes/{{ card.id }}/compras/nova" hx-get="/app/cartoes/{{ card.id }}/compras/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova compra</span></a>
+{% endblock %}
+{% block content %}
+{% set labels = {"open": ("Aberta", "badge-info"), "closed": ("Fechada", "badge-warning"), "partial": ("Paga parcialmente", "badge-warning"), "paid": ("Paga", "badge-positive"), "overdue": ("Vencida", "badge-negative")} %}
+<div id="card-page" hx-get="/app/cartoes/{{ card.id }}" hx-trigger="refresh from:body" hx-select="#card-page" hx-target="this" hx-swap="outerHTML">
+  {% if summary %}
+  <section class="mb-6 grid gap-4 sm:grid-cols-3">
+    <div class="card card-pad"><p class="text-xs text-muted">Limite</p><p class="num mt-1 text-xl font-bold">{{ card.limit_cents|brl }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Dívida total (inclui parcelas futuras)</p><p class="num mt-1 text-xl font-bold text-negative">{{ summary.debt|brl }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Limite disponível</p><p class="num mt-1 text-xl font-bold text-positive">{{ summary.available|brl }}</p></div>
+  </section>
+  {% endif %}
+  <div class="grid gap-6 xl:grid-cols-2">
+    <section class="card overflow-hidden">
+      <header class="border-b border-line px-5 py-4"><h2 class="card-title">Faturas</h2></header>
+      <div class="table-wrap">
+        <table class="table text-sm">
+          <caption class="sr-only">Faturas do cartão</caption>
+          <thead><tr><th scope="col">Fatura</th><th scope="col">Vencimento</th><th scope="col" class="text-right">Total</th><th scope="col" class="text-right">Em aberto</th><th scope="col">Situação</th></tr></thead>
+          <tbody>
+            {% for s in statements %}
+            {% set st = s.status(today) %}
+            <tr>
+              <td><a class="font-medium hover:underline" href="/app/faturas/{{ s.statement_id }}">{{ "%02d"|format(s.month) }}/{{ s.year }}</a><p class="text-xs text-muted">fecha {{ s.closing_date|date_br }}</p></td>
+              <td class="num">{{ s.due_date|date_br }}</td>
+              <td class="num text-right">{{ s.total_cents|brl }}</td>
+              <td class="num text-right font-semibold">{{ [s.remaining_cents, 0]|max|brl }}</td>
+              <td><span class="{{ labels[st][1] }}">{{ labels[st][0] }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="py-8 text-center text-muted">Nenhuma fatura.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card overflow-hidden">
+      <header class="border-b border-line px-5 py-4"><h2 class="card-title">Compras recentes</h2></header>
+      <ul class="divide-y divide-line">
+        {% for p in purchases %}
+        <li class="flex items-center gap-3 px-5 py-3 {{ 'opacity-60' if p.status.value == 'refunded' }}">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium {{ 'line-through' if p.status.value == 'refunded' }}">{{ p.description }}</p>
+            <p class="text-xs text-muted">{{ p.purchase_date|date_br }} · {{ p.category.name }} · {{ p.installments_count }}x{% if p.status.value == "refunded" %} · estornada{% endif %}</p>
+          </div>
+          <span class="num text-sm font-semibold">{{ p.total_cents|brl }}</span>
+          {% if p.status.value == "active" %}
+          <form method="post" action="/app/compras/{{ p.id }}/estornar" hx-post="/app/compras/{{ p.id }}/estornar">{{ csrf() }}<button type="submit" class="btn-icon" aria-label="Estornar {{ p.description }}" data-confirm="Estornar “{{ p.description }}”? Parcelas futuras são canceladas e parcelas já faturadas viram crédito na próxima fatura.">{{ icon("undo-2") }}</button></form>
+          {% endif %}
+        </li>
+        {% else %}
+        <li class="px-5 py-8 text-center text-sm text-muted">Nenhuma compra registrada.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  <form class="mt-6" method="post" action="/app/cartoes/{{ card.id }}/arquivar" hx-post="/app/cartoes/{{ card.id }}/arquivar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm" data-confirm="Arquivar o cartão? Só é possível sem saldo devedor.">{{ icon("archive") }} Arquivar cartão</button></form>
+</div>
+{% endblock %}

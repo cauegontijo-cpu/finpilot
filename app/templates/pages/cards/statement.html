@@ -1,0 +1,62 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import csrf, regime with context %}
+{% block title %}Fatura {{ "%02d"|format(statement.month) }}/{{ statement.year }}{% endblock %}
+{% block page_title %}<a href="/app/cartoes/{{ card.id }}" class="text-muted hover:text-fg">{{ card.name }}</a> <span class="text-muted">/</span> Fatura {{ "%02d"|format(statement.month) }}/{{ statement.year }}{% endblock %}
+{% block header_actions %}
+{% if balance.remaining_cents > 0 %}
+<a href="/app/faturas/{{ statement.id }}/pagar" hx-get="/app/faturas/{{ statement.id }}/pagar" hx-target="#drawer-body" class="btn btn-primary">{{ icon("banknote") }} Pagar fatura</a>
+{% endif %}
+{% endblock %}
+{% block content %}
+{% set st = balance.status(today) %}
+{% set labels = {"open": ("Aberta", "badge-info"), "closed": ("Fechada", "badge-warning"), "partial": ("Paga parcialmente", "badge-warning"), "paid": ("Paga", "badge-positive"), "overdue": ("Vencida", "badge-negative")} %}
+<div id="statement-page" hx-get="/app/faturas/{{ statement.id }}" hx-trigger="refresh from:body" hx-select="#statement-page" hx-target="this" hx-swap="outerHTML">
+  <section class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="card card-pad"><p class="text-xs text-muted">Situação</p><p class="mt-2"><span class="{{ labels[st][1] }}">{{ labels[st][0] }}</span></p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Fechamento</p><p class="num mt-1 font-semibold">{{ statement.closing_date|date_br }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Vencimento</p><p class="num mt-1 font-semibold">{{ statement.due_date|date_br }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Total {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold">{{ balance.total_cents|brl }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Em aberto</p><p class="num mt-1 text-xl font-bold {{ 'text-negative' if balance.remaining_cents > 0 }}">{{ [balance.remaining_cents, 0]|max|brl }}</p><p class="text-xs text-muted">pago {{ balance.paid_cents|brl }}</p></div>
+  </section>
+  <div class="grid gap-6 xl:grid-cols-3">
+    <section class="card overflow-hidden xl:col-span-2">
+      <header class="border-b border-line px-5 py-4"><h2 class="card-title">Lançamentos da fatura</h2></header>
+      <div class="table-wrap">
+        <table class="table text-sm">
+          <caption class="sr-only">Parcelas e créditos da fatura</caption>
+          <thead><tr><th scope="col">Compra</th><th scope="col">Data</th><th scope="col">Parcela</th><th scope="col">Categoria</th><th scope="col" class="text-right">Valor</th></tr></thead>
+          <tbody>
+            {% for i in items %}
+            <tr class="{{ 'opacity-50' if i.status.value == 'cancelled' }}">
+              <td class="font-medium {{ 'line-through' if i.status.value == 'cancelled' }}">{{ i.purchase.description }}{% if i.kind.value == "credit" %} <span class="badge-positive">Crédito de estorno</span>{% endif %}{% if i.status.value == "cancelled" %} <span class="badge-neutral">Cancelada</span>{% endif %}</td>
+              <td class="num">{{ i.purchase.purchase_date|date_br }}</td>
+              <td class="num">{% if i.kind.value == "charge" %}{{ i.number }}/{{ i.purchase.installments_count }}{% else %}—{% endif %}</td>
+              <td>{{ i.purchase.category.name }}</td>
+              <td class="num text-right font-semibold {{ 'text-positive' if i.kind.value == 'credit' }}">{{ ("−" if i.kind.value == "credit" else "") }}{{ i.amount_cents|brl }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="py-8 text-center text-muted">Nenhum lançamento nesta fatura.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card overflow-hidden">
+      <header class="border-b border-line px-5 py-4"><h2 class="card-title">Pagamentos {{ regime("caixa") }}</h2></header>
+      <ul class="divide-y divide-line">
+        {% for p in payments %}
+        <li class="flex items-center gap-3 px-5 py-3 {{ 'opacity-60' if p.status.value == 'cancelled' }}">
+          <div class="flex-1"><p class="num text-sm font-semibold">{{ p.amount_cents|brl }}</p><p class="text-xs text-muted">{{ p.payment_date|date_br }}{% if p.status.value == "cancelled" %} · cancelado{% endif %}</p></div>
+          {% if p.status.value == "active" %}
+          <form method="post" action="/app/pagamentos/{{ p.id }}/cancelar" hx-post="/app/pagamentos/{{ p.id }}/cancelar">{{ csrf() }}<button class="btn btn-ghost btn-sm" type="submit" data-confirm="Cancelar este pagamento? O valor volta para a conta de origem.">{{ icon("undo-2") }} Cancelar</button></form>
+          {% endif %}
+        </li>
+        {% else %}
+        <li class="px-5 py-8 text-center text-sm text-muted">Nenhum pagamento.</li>
+        {% endfor %}
+      </ul>
+      <p class="border-t border-line px-5 py-3 text-xs text-muted">O pagamento reduz o saldo da conta, mas não é contado como despesa: as compras já foram reconhecidas nas parcelas.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% if plan %}
+<div class="rounded-xl border border-line bg-surface-2 p-4">
+  <p class="text-sm font-semibold">Cronograma das parcelas</p>
+  <ul class="mt-2 max-h-48 space-y-1 overflow-y-auto text-sm">
+    {% for p in plan %}
+    <li class="flex justify-between gap-2"><span>{{ p.number }}ª · fatura {{ p.statement.month.short_label() }} <span class="text-xs text-muted">(vence {{ p.statement.due_date|date_br }})</span></span><span class="num font-medium">{{ p.amount_cents|brl }}</span></li>
+    {% endfor %}
+  </ul>
+  <p class="mt-2 text-xs text-muted">Soma: <span class="num font-semibold text-fg">{{ plan|sum(attribute="amount_cents")|brl }}</span>. Centavos residuais ficam nas primeiras parcelas.</p>
+</div>
+{% else %}
+<p class="text-xs text-muted">Informe valor, parcelas e data para ver o cronograma.</p>
+{% endif %}

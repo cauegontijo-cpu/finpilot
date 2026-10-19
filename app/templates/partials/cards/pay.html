@@ -1,0 +1,23 @@
+{% from "components/ui.html" import field, money_field, alert, csrf, idem with context %}
+{% with title="Pagar fatura " ~ ("%02d"|format(statement.month)) ~ "/" ~ statement.year, subtitle="Saída de caixa da conta escolhida — não é uma nova despesa.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="/app/faturas/{{ statement.id }}/pagar" hx-post="/app/faturas/{{ statement.id }}/pagar" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}{{ idem() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  <div class="rounded-xl bg-surface-2 px-4 py-3 text-sm">Saldo devido: <strong class="num">{{ [balance.remaining_cents, 0]|max|brl }}</strong> · vencimento {{ statement.due_date|date_br }}</div>
+  <div>
+    <label class="label" for="f-account_id">Conta de origem <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-account_id" name="account_id" class="input" required>
+      <option value="">Selecione…</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if values.account_id == a.id|string %}selected{% endif %}>{{ a.name }} · {{ a.current_balance_cents|brl }}</option>{% endfor %}
+    </select>
+    {% if errors.account_id %}<p class="field-error">{{ errors.account_id }}</p>{% endif %}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("amount", "Valor do pagamento", value=values.amount, errors=errors, hint="Pagamento parcial é permitido; acima do devido, não.") }}
+    {{ field("payment_date", "Data", value=values.payment_date, type="date", errors=errors, required=True) }}
+  </div>
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/faturas/{{ statement.id }}" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("banknote") }} Pagar</button>
+  </div>
+</form>

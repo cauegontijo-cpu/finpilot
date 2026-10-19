@@ -1,0 +1,24 @@
+{% from "components/ui.html" import field, money_field, alert, csrf with context %}
+{% from "components/pickers.html" import color_picker with context %}
+{% set action = "/app/cartoes/" ~ card.id if card else "/app/cartoes" %}
+{% with title=("Editar cartão" if card else "Novo cartão"), subtitle="Nunca informe o número completo, CVV ou senha — apenas os 4 últimos dígitos.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate autocomplete="off">
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("name", "Nome do cartão", value=values.name, errors=errors, required=True, maxlength=60, placeholder="Ex.: Nubank Roxinho") }}
+    {{ field("institution", "Instituição (opcional)", value=values.institution, errors=errors, maxlength=80) }}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-3">
+    {{ money_field("limit", "Limite", value=values.limit, errors=errors) }}
+    {{ field("closing_day", "Dia de fechamento", value=values.closing_day, type="number", errors=errors, required=True, min=1, max=31) }}
+    {{ field("due_day", "Dia de vencimento", value=values.due_day, type="number", errors=errors, required=True, min=1, max=31) }}
+  </div>
+  <p class="-mt-2 text-xs text-muted">Compras até o dia do fechamento (inclusive) entram na fatura do mês; depois, na seguinte. Dias inexistentes no mês usam o último dia.{% if card %} Alterações valem para faturas ainda não criadas.{% endif %}</p>
+  {{ field("last4", "Últimos 4 dígitos (opcional)", value=values.last4, errors=errors, maxlength=4, inputmode="numeric", placeholder="1234") }}
+  {{ color_picker(palette, values.color) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/cartoes" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>
