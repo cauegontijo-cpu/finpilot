@@ -45,25 +45,25 @@ def run_once(
     now = clock.now()
     counts: dict[str, int] = {}
     with maker() as db:
-        counts["sessions"] = _deleted(
+        counts["sessoes"] = _deleted(
             db,
             delete(UserSession).where(
                 or_(UserSession.expires_at < now, UserSession.revoked_at < now - timedelta(days=30))
             ),
         )
-        counts["email_tokens"] = _deleted(
+        counts["codigos_email"] = _deleted(
             db, delete(EmailToken).where(EmailToken.expires_at < now - timedelta(days=7))
         )
-        counts["reset_tokens"] = _deleted(
+        counts["codigos_redefinicao"] = _deleted(
             db,
             delete(PasswordResetToken).where(
                 PasswordResetToken.expires_at < now - timedelta(days=7)
             ),
         )
-        counts["idempotency_keys"] = _deleted(
+        counts["chaves_idempotencia"] = _deleted(
             db, delete(IdempotencyKey).where(IdempotencyKey.expires_at < now)
         )
-        counts["import_batches"] = _deleted(
+        counts["lotes_importacao"] = _deleted(
             db,
             delete(ImportBatch).where(
                 ImportBatch.expires_at < now, ImportBatch.status != ImportStatus.CONFIRMED
@@ -75,7 +75,7 @@ def run_once(
         try:
             # Exige papel com DELETE na tabela (migrator/manutenção); o papel da aplicação não tem.
             db.execute(text("SET LOCAL finpilot.audit_maintenance = 'on'"))
-            counts["audit_logs"] = _deleted(
+            counts["auditoria"] = _deleted(
                 db,
                 delete(AuditLog).where(
                     or_(
@@ -94,7 +94,7 @@ def run_once(
             logger.warning(
                 "retenção da auditoria não executada (papel sem privilégio de manutenção)"
             )
-            counts["audit_logs"] = -1
+            counts["auditoria"] = -1
     logger.info("manutenção concluída", extra=counts)
     return {k: int(v) for k, v in counts.items()}
 

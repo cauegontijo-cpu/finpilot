@@ -1,0 +1,27 @@
+# Proxy reverso HTTPS (certificado automático Let's Encrypt).
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Limite de corpo coerente com a aplicação (upload de CSV até alguns MB).
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	@static path /static/*
+	header @static Cache-Control "public, max-age=604800"
+
+	reverse_proxy web:8000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

@@ -78,7 +78,8 @@ services:
       retries: 10
 
   migrate:
-    build: .
+    image: finpilot:dev
+    pull_policy: never
     command: ["alembic", "upgrade", "head"]
     environment:
       <<: *app-env
@@ -89,6 +90,7 @@ services:
     restart: "no"
 
   web:
+    image: finpilot:dev
     build: .
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
     environment: *app-env
@@ -110,7 +112,8 @@ services:
       retries: 5
 
   scheduler:
-    build: .
+    image: finpilot:dev
+    pull_policy: never
     command: ["python", "-m", "app.jobs.scheduler"]
     environment: *app-env
     depends_on:

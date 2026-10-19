@@ -98,7 +98,7 @@ def run_once(maker: sessionmaker[Session] | None = None, clock: Clock | None = N
         "job de recorrências concluído",
         extra={
             "rules": report.rules,
-            "created": report.created,
+            "occurrences_created": report.created,
             "settled": report.settled,
             "failures": len(report.failures),
         },
