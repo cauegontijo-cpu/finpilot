@@ -21,7 +21,7 @@ from sqlalchemy import case, extract, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.dates import Month, month_range
-from app.models import Account, CardInstallment, CardPurchase, Category, Transaction
+from app.models import Account, CardInstallment, CardPurchase, Category, CategoryKind, Transaction
 
 
 @dataclass
@@ -144,6 +144,12 @@ class AnalyticsService:
         return {Month(int(yy), int(mm)): int(total or 0) for yy, mm, total in self.db.execute(stmt)}
 
     def expenses_by_category(self, user_id: uuid.UUID, month: Month, scope: Scope | None = None) -> list[CategoryAmount]:
+        return self.by_category(user_id, month.first_day, month.last_day, CategoryKind.EXPENSE, scope)
+
+    def by_category(
+        self, user_id: uuid.UUID, start: date, end: date, kind: CategoryKind, scope: Scope | None = None
+    ) -> list[CategoryAmount]:
+        """Totais por categoria na competência; despesas incluem parcelas de cartão."""
         scope = scope or Scope()
         amounts: dict[uuid.UUID, CategoryAmount] = {}
 
@@ -157,10 +163,10 @@ class AnalyticsService:
             .join(Category, Category.id == Transaction.category_id)
             .where(
                 Transaction.user_id == user_id,
-                Transaction.type == "expense",
+                Transaction.type == kind.value,
                 Transaction.status != "cancelled",
-                Transaction.competence_date >= month.first_day,
-                Transaction.competence_date <= month.last_day,
+                Transaction.competence_date >= start,
+                Transaction.competence_date <= end,
             )
             .group_by(Category.id, Transaction.status)
         )
@@ -175,7 +181,7 @@ class AnalyticsService:
             else:
                 b.planned += int(total)
 
-        if scope.account_id is None:
+        if scope.account_id is None and kind is CategoryKind.EXPENSE:
             card_stmt = (
                 select(Category, func.sum(_installment_signed()))
                 .select_from(CardInstallment)
@@ -184,8 +190,8 @@ class AnalyticsService:
                 .where(
                     CardInstallment.user_id == user_id,
                     CardInstallment.status == "active",
-                    CardInstallment.competence_date >= month.first_day,
-                    CardInstallment.competence_date <= month.last_day,
+                    CardInstallment.competence_date >= start,
+                    CardInstallment.competence_date <= end,
                 )
                 .group_by(Category.id)
             )

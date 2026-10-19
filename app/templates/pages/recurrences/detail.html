@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import status_badge, csrf with context %}
+{% block title %}{{ rule.description }}{% endblock %}
+{% block page_title %}<a href="/app/recorrencias" class="text-muted hover:text-fg">Recorrências</a> <span class="text-muted">/</span> {{ rule.description }}{% endblock %}
+{% block content %}
+<div id="rec-detail" hx-get="/app/recorrencias/{{ rule.id }}" hx-trigger="refresh from:body" hx-select="#rec-detail" hx-target="this" hx-swap="outerHTML" class="grid gap-6 xl:grid-cols-3">
+  <section class="card card-pad">
+    <div class="flex items-center justify-between"><h2 class="card-title">Regra</h2><span class="{{ {'active': 'badge-positive', 'paused': 'badge-warning', 'cancelled': 'badge-neutral'}[rule.status.value] }}">{{ status_labels[rule.status] }}</span></div>
+    <p class="num mt-4 text-2xl font-bold {{ 'text-positive' if rule.type.value == 'income' else 'text-negative' }}">{{ rule.amount_cents|brl }}</p>
+    <dl class="mt-4 space-y-2 text-sm">
+      <div class="flex justify-between"><dt class="text-muted">Tipo</dt><dd>{{ TYPE_LABELS[rule.type] }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Frequência</dt><dd>{{ freq_labels[rule.frequency] }}{% if rule.interval > 1 %} (a cada {{ rule.interval }}){% endif %}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Conta</dt><dd>{{ rule.account.name }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Categoria</dt><dd>{{ rule.category.name }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Início</dt><dd>{{ rule.start_date|date_br }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Fim</dt><dd>{{ rule.end_date|date_br if rule.end_date else "Sem data final" }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Efetivação automática</dt><dd>{{ "Sim" if rule.auto_settle else "Não" }}</dd></div>
+      <div class="flex justify-between"><dt class="text-muted">Gerado até</dt><dd>{{ rule.generated_until|date_br }}</dd></div>
+    </dl>
+    {% if rule.start_date.day > 28 and rule.frequency.value in ("monthly", "yearly") %}
+    <p class="mt-4 rounded-lg bg-info-soft px-3 py-2 text-xs text-info">Em meses sem o dia {{ rule.start_date.day }}, a ocorrência cai no último dia válido do mês.</p>
+    {% endif %}
+    <div class="mt-6 flex flex-wrap gap-2 border-t border-line pt-4">
+      {% if rule.status.value != "cancelled" %}
+      <a href="/app/recorrencias/{{ rule.id }}/editar" hx-get="/app/recorrencias/{{ rule.id }}/editar" hx-target="#drawer-body" class="btn btn-secondary btn-sm">{{ icon("pencil") }} Editar futuras</a>
+      {% endif %}
+      {% if rule.status.value == "active" %}
+      <form method="post" action="/app/recorrencias/{{ rule.id }}/pausar" hx-post="/app/recorrencias/{{ rule.id }}/pausar">{{ csrf() }}<button type="submit" class="btn btn-secondary btn-sm">{{ icon("pause") }} Pausar</button></form>
+      {% elif rule.status.value == "paused" %}
+      <form method="post" action="/app/recorrencias/{{ rule.id }}/retomar" hx-post="/app/recorrencias/{{ rule.id }}/retomar">{{ csrf() }}<button type="submit" class="btn btn-secondary btn-sm">{{ icon("play") }} Retomar</button></form>
+      {% endif %}
+      {% if rule.status.value != "cancelled" %}
+      <form method="post" action="/app/recorrencias/{{ rule.id }}/cancelar" hx-post="/app/recorrencias/{{ rule.id }}/cancelar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm text-negative" data-confirm="Cancelar a recorrência? Ocorrências futuras previstas serão removidas; as efetivadas permanecem.">{{ icon("ban") }} Cancelar</button></form>
+      {% endif %}
+    </div>
+  </section>
+  <section class="card card-pad">
+    <h2 class="card-title">Próximas ocorrências</h2>
+    <ol class="mt-4 space-y-2 text-sm">
+      {% for d in next %}<li class="flex items-center gap-2">{{ icon("calendar-days", "size-4 text-muted") }} {{ d|date_br }}</li>{% else %}<li class="text-muted">Nenhuma ocorrência futura.</li>{% endfor %}
+    </ol>
+  </section>
+  <section class="card overflow-hidden">
+    <header class="border-b border-line px-5 py-4"><h2 class="card-title">Ocorrências geradas</h2></header>
+    <ul class="max-h-96 divide-y divide-line overflow-y-auto">
+      {% for t in occurrences %}
+      <li class="flex items-center justify-between gap-3 px-5 py-2.5 text-sm"><span>{{ t.occurrence_date|date_br }}</span>{{ status_badge(t.status) }}<span class="num">{{ t.amount_cents|brl }}</span></li>
+      {% else %}<li class="px-5 py-8 text-center text-sm text-muted">Nenhuma ocorrência gerada.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

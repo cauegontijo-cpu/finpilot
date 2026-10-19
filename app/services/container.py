@@ -15,6 +15,10 @@ from app.services.budgets import BudgetService
 from app.services.categories import CategoryService
 from app.services.dashboard import DashboardService
 from app.services.forecast import ForecastService
+from app.services.goals import GoalService
+from app.services.imports import ImportService
+from app.services.recurrences import RecurrenceService
+from app.services.reports import ReportService
 from app.services.transactions import TransactionService
 from app.services.transfers import TransferService
 
@@ -61,3 +65,19 @@ class Services:
     @cached_property
     def forecast(self) -> ForecastService:
         return ForecastService(self.db)
+
+    @cached_property
+    def goals(self) -> GoalService:
+        return GoalService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def recurrences(self) -> RecurrenceService:
+        return RecurrenceService(self.db, self.clock, self.audit, self.settings.recurrence_horizon_days)
+
+    @cached_property
+    def imports(self) -> ImportService:
+        return ImportService(self.db, self.clock, self.audit, self.settings)
+
+    @cached_property
+    def reports(self) -> ReportService:
+        return ReportService(self.db, self.clock, self.audit)

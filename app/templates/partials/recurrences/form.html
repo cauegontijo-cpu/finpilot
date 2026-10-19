@@ -1,0 +1,49 @@
+{% from "components/ui.html" import field, money_field, select, checkbox, textarea, alert, csrf with context %}
+{% set action = "/app/recorrencias/" ~ rule.id if rule else "/app/recorrencias" %}
+{% set tx_type = values.type or "expense" %}
+{% with title=("Editar recorrência" if rule else "Nova recorrência"), subtitle=("Somente ocorrências futuras ainda previstas serão ajustadas." if rule else "Gera lançamentos previstos automaticamente."), modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {% if rule %}
+  <input type="hidden" name="type" value="{{ tx_type }}">
+  {% else %}
+  <fieldset>
+    <legend class="label">Tipo</legend>
+    <div class="grid grid-cols-2 gap-2 rounded-xl bg-surface-3 p-1">
+      {% for v, l in [("expense", "Despesa"), ("income", "Receita")] %}
+      <label class="cursor-pointer"><input type="radio" name="type" value="{{ v }}" class="peer sr-only" {% if tx_type == v %}checked{% endif %}><span class="block rounded-lg py-2 text-center text-sm font-semibold text-muted peer-checked:bg-surface peer-checked:text-fg peer-checked:shadow-soft peer-focus-visible:ring-2 peer-focus-visible:ring-primary">{{ l }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endif %}
+  {{ field("description", "Descrição", value=values.description, errors=errors, required=True, maxlength=140, placeholder="Ex.: Aluguel") }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("amount", "Valor", value=values.amount, errors=errors) }}
+    {{ select("account_id", "Conta", account_options, selected=values.account_id, errors=errors, required=True, placeholder="Selecione…") }}
+  </div>
+  {% for kind, cats, name in [("expense", expense_categories, "expense_category_id"), ("income", income_categories, "income_category_id")] %}
+  <div data-show-when="type={{ kind }}" {% if tx_type != kind %}hidden{% endif %}>
+    <label class="label" for="f-{{ name }}">Categoria <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-{{ name }}" name="{{ name }}" class="input" {% if tx_type != kind %}disabled{% endif %}>
+      <option value="">Selecione…</option>
+      {% for c in cats %}<option value="{{ c.id }}" {% if values[name] == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    {% if errors[name] %}<p class="field-error">{{ errors[name] }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ select("frequency", "Frequência", frequencies, selected=values.frequency, errors=errors, required=True) }}
+    {{ field("interval", "A cada (intervalo)", value=values.interval or "1", type="number", errors=errors, min=1, max=365, hint="Ex.: 2 com frequência mensal = bimestral.") }}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("start_date", "Data inicial", value=values.start_date, type="date", errors=errors, required=True, hint="Dias 29–31 caem no último dia válido em meses mais curtos.") }}
+    {{ field("end_date", "Data final (opcional)", value=values.end_date, type="date", errors=errors) }}
+  </div>
+  {{ checkbox("auto_settle", "Efetivar automaticamente na data", checked=values.auto_settle in ("true", "on"), errors=errors, hint="Se houver saldo, a ocorrência é efetivada no dia; caso contrário, permanece prevista.") }}
+  {{ textarea("notes", "Observações", value=values.notes, errors=errors, rows=2) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/recorrencias" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

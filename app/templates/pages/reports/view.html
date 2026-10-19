@@ -1,0 +1,59 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import chart, alert with context %}
+{% block title %}{{ r.title }}{% endblock %}
+{% block head_scripts %}<script src="/static/vendor/chart.umd.min.js" defer></script>{% endblock %}
+{% block page_title %}<a href="/app/relatorios" class="text-muted hover:text-fg">Relatórios</a> <span class="text-muted">/</span> {{ r.title }}{% endblock %}
+{% block header_actions %}
+<div class="flex items-center gap-1">
+  <a href="/app/relatorios/{{ key }}/exportar.csv?{{ query }}" class="btn btn-secondary btn-sm">{{ icon("file-spreadsheet") }}<span class="hidden sm:inline">CSV</span></a>
+  <a href="/app/relatorios/{{ key }}/exportar.pdf?{{ query }}" class="btn btn-secondary btn-sm">{{ icon("file-text") }}<span class="hidden sm:inline">PDF</span></a>
+  <a href="/app/relatorios/{{ key }}?{{ query }}&imprimir=1" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">{{ icon("printer") }}<span class="hidden sm:inline">Imprimir</span></a>
+</div>
+{% endblock %}
+{% block content %}
+<form class="card card-pad mb-6 flex flex-wrap items-end gap-3" method="get" action="/app/relatorios/{{ key }}" aria-label="Filtros do relatório">
+  {% if key == "comparativo" %}
+  <div><label class="label" for="r-a">Mês A</label><input id="r-a" type="month" name="a" class="input" value="{{ (params.compare_a or params.end.shift(-1)).iso() }}"></div>
+  <div><label class="label" for="r-b">Mês B</label><input id="r-b" type="month" name="b" class="input" value="{{ (params.compare_b or params.end).iso() }}"></div>
+  {% elif key != "recorrencias" %}
+  <div><label class="label" for="r-start">De</label><input id="r-start" type="month" name="start" class="input" value="{{ params.start.iso() }}" required></div>
+  <div><label class="label" for="r-end">Até</label><input id="r-end" type="month" name="end" class="input" value="{{ params.end.iso() }}" required></div>
+  {% endif %}
+  {% if key in ("receitas-despesas", "categorias", "patrimonio", "comparativo", "movimentacoes") %}
+  <div>
+    <label class="label" for="r-acc">Conta</label>
+    <select id="r-acc" name="account_id" class="input"><option value="">Todas</option>{% for a in accounts %}<option value="{{ a.id }}" {% if params.account_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
+  </div>
+  {% endif %}
+  {% if key in ("receitas-despesas", "categorias", "orcamento", "movimentacoes") %}
+  <div>
+    <label class="label" for="r-cat">Categoria</label>
+    <select id="r-cat" name="category_id" class="input"><option value="">Todas</option>{% for c in categories %}<option value="{{ c.id }}" {% if params.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+  </div>
+  {% endif %}
+  <button type="submit" class="btn btn-primary">{{ icon("filter") }} Aplicar</button>
+  <p class="w-full text-xs text-muted">Período máximo de 24 meses. Critério contábil: <strong>{{ r.regime }}</strong>.</p>
+</form>
+{% if error %}<div class="mb-6">{{ alert(error) }}</div>{% endif %}
+
+<section class="card overflow-hidden">
+  <header class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
+    <div><h2 class="card-title">{{ r.title }}</h2><p class="card-sub">{{ r.period_label }}</p></div>
+    <span class="regime">{{ r.regime }}</span>
+  </header>
+  {% if r.chart and r.rows %}
+  <div class="border-b border-line p-5">{{ chart("rep-chart", r.chart, "h-64", "Gráfico do relatório " ~ r.title) }}</div>
+  {% endif %}
+  {% include "partials/reports/table.html" %}
+  {% if pages > 1 %}
+  <nav class="flex items-center justify-between border-t border-line px-4 py-3 text-sm" aria-label="Paginação">
+    <p class="text-muted">Página {{ page }} de {{ pages }} · {{ total_rows }} linhas</p>
+    <div class="flex gap-2">
+      {% if page > 1 %}<a class="btn btn-secondary btn-sm" href="?{{ query }}&page={{ page - 1 }}">Anterior</a>{% endif %}
+      {% if page < pages %}<a class="btn btn-secondary btn-sm" href="?{{ query }}&page={{ page + 1 }}">Próxima</a>{% endif %}
+    </div>
+  </nav>
+  {% endif %}
+  {% for n in r.notes %}<p class="border-t border-line px-5 py-3 text-xs text-muted">{{ n }}</p>{% endfor %}
+</section>
+{% endblock %}

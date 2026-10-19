@@ -1,0 +1,20 @@
+{% from "components/ui.html" import field, money_field, textarea, alert, csrf with context %}
+{% from "components/pickers.html" import color_picker, icon_picker with context %}
+{% set action = "/app/metas/" ~ goal.id if goal else "/app/metas" %}
+{% with title=("Editar meta" if goal else "Nova meta"), subtitle="Objetivos de economia acompanhados por reservas virtuais.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {{ field("name", "Nome", value=values.name, errors=errors, required=True, maxlength=80, placeholder="Ex.: Reserva de emergência") }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("target", "Valor desejado", value=values.target, errors=errors) }}
+    {{ field("deadline", "Prazo (opcional)", value=values.deadline, type="date", errors=errors) }}
+  </div>
+  {{ textarea("description", "Descrição", value=values.description, errors=errors, rows=2) }}
+  {{ color_picker(palette, values.color) }}
+  {{ icon_picker(icons, values.icon) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/metas" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

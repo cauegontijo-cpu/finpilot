@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import progress, csrf with context %}
+{% set g = p.goal %}
+{% block title %}{{ g.name }}{% endblock %}
+{% block page_title %}<a href="/app/metas" class="text-muted hover:text-fg">Metas</a> <span class="text-muted">/</span> {{ g.name }}{% endblock %}
+{% block header_actions %}
+{% if g.status.value != "archived" %}
+<a href="/app/metas/{{ g.id }}/alocar" hx-get="/app/metas/{{ g.id }}/alocar" hx-target="#drawer-body" class="btn btn-primary">{{ icon("piggy-bank") }}<span class="hidden sm:inline">Reservar</span></a>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div id="goal-page" hx-get="/app/metas/{{ g.id }}" hx-trigger="refresh from:body" hx-select="#goal-page" hx-target="this" hx-swap="outerHTML" class="grid gap-6 xl:grid-cols-3">
+  <section class="card card-pad xl:col-span-2">
+    <div class="flex items-start gap-4">
+      <span class="inline-flex size-14 items-center justify-center rounded-2xl text-white {{ color_class(g.color) }}">{{ icon(g.icon, "size-7") }}</span>
+      <div class="flex-1">
+        <h2 class="text-xl font-bold">{{ g.name }}</h2>
+        {% if g.description %}<p class="mt-1 text-sm text-muted">{{ g.description }}</p>{% endif %}
+      </div>
+      <span class="{{ {'active': 'badge-info', 'completed': 'badge-positive', 'archived': 'badge-neutral'}[g.status.value] }}">{{ labels[g.status] }}</span>
+    </div>
+    <div class="mt-8 flex flex-wrap items-end justify-between gap-2">
+      <p><span class="num text-3xl font-bold">{{ p.allocated|brl }}</span> <span class="num text-muted">de {{ g.target_cents|brl }}</span></p>
+      <p class="num text-lg font-semibold text-accent">{{ (p.pct|string).replace(".", ",") }}%</p>
+    </div>
+    <div class="mt-3">{{ progress(p.pct|float, "positive" if p.reached else "accent", 0, "Progresso da meta") }}</div>
+    <dl class="mt-6 grid gap-4 text-sm sm:grid-cols-4">
+      <div><dt class="text-xs text-muted">Falta</dt><dd class="num font-semibold">{{ p.remaining|brl }}</dd></div>
+      <div><dt class="text-xs text-muted">Prazo</dt><dd class="font-semibold">{{ g.deadline|date_br if g.deadline else "Sem prazo" }}</dd></div>
+      <div><dt class="text-xs text-muted">Média mensal recente</dt><dd class="num font-semibold">{{ p.monthly_average|brl }}</dd></div>
+      <div><dt class="text-xs text-muted">Estimativa de conclusão</dt><dd class="font-semibold">{% if p.reached %}Concluída{% elif p.estimated_completion %}{{ p.estimated_completion|date_br }}{% else %}Indeterminada{% endif %}</dd></div>
+    </dl>
+    {% if p.required_monthly %}
+    <p class="mt-4 rounded-xl px-4 py-3 text-sm {{ 'bg-positive-soft text-positive' if p.on_track else 'bg-warning-soft text-warning' }}">
+      Para cumprir o prazo, reserve <strong class="num">{{ p.required_monthly|brl }}</strong> por mês. {{ "Você está no ritmo." if p.on_track else "O ritmo atual está abaixo do necessário." }}
+    </p>
+    {% endif %}
+    <p class="mt-4 text-xs text-muted">A estimativa usa a média das reservas líquidas dos últimos 3 meses — é uma projeção linear simples, não uma garantia.</p>
+    <div class="mt-6 flex flex-wrap gap-2 border-t border-line pt-4">
+      <a href="/app/metas/{{ g.id }}/editar" hx-get="/app/metas/{{ g.id }}/editar" hx-target="#drawer-body" class="btn btn-secondary btn-sm">{{ icon("pencil") }} Editar</a>
+      {% if g.status.value == "archived" %}
+      <form method="post" action="/app/metas/{{ g.id }}/reativar" hx-post="/app/metas/{{ g.id }}/reativar">{{ csrf() }}<button type="submit" class="btn btn-secondary btn-sm">{{ icon("archive-restore") }} Reativar</button></form>
+      {% else %}
+      <form method="post" action="/app/metas/{{ g.id }}/arquivar" hx-post="/app/metas/{{ g.id }}/arquivar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm" data-confirm="Arquivar a meta? As reservas deixam de contar como reservadas.">{{ icon("archive") }} Arquivar</button></form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card">
+    <header class="border-b border-line px-5 py-4"><h2 class="card-title">Histórico de reservas</h2></header>
+    <ul class="max-h-[32rem] divide-y divide-line overflow-y-auto">
+      {% for a in allocations %}
+      <li class="flex items-center gap-3 px-5 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="num text-sm font-semibold {{ 'text-negative' if a.amount_cents < 0 else 'text-positive' }}">{{ a.amount_cents|brl(True) }}</p>
+          <p class="truncate text-xs text-muted">{{ a.allocation_date|date_br }}{% if a.note %} · {{ a.note }}{% endif %}{% if a.id in reversed_ids %} · revertida{% endif %}</p>
+        </div>
+        {% if a.amount_cents > 0 and a.id not in reversed_ids and not a.reverses_id %}
+        <form method="post" action="/app/metas/{{ g.id }}/alocacoes/{{ a.id }}/reverter" hx-post="/app/metas/{{ g.id }}/alocacoes/{{ a.id }}/reverter">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm" data-confirm="Reverter esta reserva de {{ a.amount_cents|brl }}?">{{ icon("undo-2") }} Reverter</button></form>
+        {% endif %}
+      </li>
+      {% else %}
+      <li class="px-5 py-10 text-center text-sm text-muted">Nenhuma reserva registrada.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

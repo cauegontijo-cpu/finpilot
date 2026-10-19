@@ -1,0 +1,16 @@
+<div class="table-wrap">
+  <table class="table">
+    <caption class="sr-only">{{ r.title }} — {{ r.period_label }}</caption>
+    <thead><tr>{% for c in r.columns %}<th scope="col" class="{{ 'text-right' if c.kind in ('money', 'pct', 'int') }}">{{ c.label }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>{% for v in row %}{% set c = r.columns[loop.index0] %}<td class="{{ 'num whitespace-nowrap text-right' if c.kind in ('money', 'pct', 'int') else ('num whitespace-nowrap' if c.kind == 'date' else '') }} {{ 'text-negative' if c.kind == 'money' and v is number and v < 0 }}">{{ fmt(v, c) }}</td>{% endfor %}</tr>
+      {% else %}
+      <tr><td colspan="{{ r.columns|length }}" class="py-10 text-center text-muted">Sem dados para os filtros selecionados.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if r.totals and rows %}
+    <tfoot><tr class="bg-surface-2 font-semibold">{% for v in r.totals %}{% set c = r.columns[loop.index0] %}<td class="border-t border-line px-4 py-3 {{ 'num whitespace-nowrap text-right' if c.kind in ('money', 'pct', 'int') }}">{{ fmt(v, c) if v not in ("", none) else "" }}</td>{% endfor %}</tr></tfoot>
+    {% endif %}
+  </table>
+</div>

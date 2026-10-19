@@ -1,0 +1,19 @@
+{% from "components/ui.html" import field, money_field, alert, csrf with context %}
+{% with title="Reservar para “" ~ goal.name ~ "”", subtitle="Reserva gerencial: não retira dinheiro das contas.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="/app/metas/{{ goal.id }}/alocar" hx-post="/app/metas/{{ goal.id }}/alocar" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  <div class="rounded-xl bg-surface-2 px-4 py-3 text-sm">
+    Livre para reservar: <strong class="num {{ 'text-negative' if summary.free_cents < 0 }}">{{ summary.free_cents|brl }}</strong>
+    <span class="block text-xs text-muted">Disponível nas contas {{ summary.available_cents|brl }} − reservado {{ summary.reserved_cents|brl }}</span>
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("amount", "Valor", value=values.amount, errors=errors) }}
+    {{ field("allocation_date", "Data", value=values.allocation_date, type="date", errors=errors) }}
+  </div>
+  {{ field("note", "Observação (opcional)", value=values.note, errors=errors, maxlength=200) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/metas/{{ goal.id }}" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("piggy-bank") }} Reservar</button>
+  </div>
+</form>

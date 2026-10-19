@@ -1,0 +1,131 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import alert, csrf, idem with context %}
+{% block title %}Importação{% endblock %}
+{% block page_title %}<a href="/app/importacoes" class="text-muted hover:text-fg">Importar</a> <span class="text-muted">/</span> {{ batch.display_name }}{% endblock %}
+{% block content %}
+{% set step = {"uploaded": 2, "mapped": 3, "confirmed": 4, "discarded": 4}[batch.status.value] %}
+<ol class="mb-6 flex flex-wrap gap-2 text-sm" aria-label="Etapas">
+  {% for n, label in [(1, "Envio"), (2, "Mapeamento"), (3, "Prévia e seleção"), (4, "Relatório")] %}
+  <li class="flex items-center gap-2 rounded-full px-3 py-1 {{ 'bg-primary text-white dark:text-[#06122b]' if n == step else ('bg-positive-soft text-positive' if n < step else 'bg-surface-3 text-muted') }}" {% if n == step %}aria-current="step"{% endif %}>
+    <span class="num font-bold">{{ n }}</span> {{ label }}
+  </li>
+  {% endfor %}
+</ol>
+
+<p class="mb-4 text-sm text-muted">Conta de destino: <strong class="text-fg">{{ account.name }}</strong> · {{ rows|length }} linha(s) · delimitador <code class="kbd">{{ "TAB" if batch.delimiter == "\t" else batch.delimiter }}</code> · {{ batch.encoding }}</p>
+{% if previous %}<div class="mb-6">{{ alert("Este mesmo arquivo já foi importado nesta conta em " ~ (previous.confirmed_at|date_br) ~ ". Linhas repetidas serão marcadas como duplicatas.", "warning") }}</div>{% endif %}
+
+{% if batch.status.value in ("uploaded", "mapped") %}
+<section class="card card-pad mb-6" aria-labelledby="h-map">
+  <h2 id="h-map" class="text-base font-semibold">2. Mapeamento de colunas</h2>
+  <div class="table-wrap mt-4 rounded-xl border border-line">
+    <table class="table text-xs">
+      <caption class="sr-only">Primeiras linhas do arquivo</caption>
+      <thead><tr><th scope="col">#</th>{% for h in batch.headers %}<th scope="col">{{ loop.index0 }} · {{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for r in sample %}<tr><td class="num">{{ r.row_number }}</td>{% for c in r.raw %}<td>{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <form method="post" action="/app/importacoes/{{ batch.id }}/mapeamento" class="mt-6 grid gap-4 md:grid-cols-3">
+    {{ csrf() }}
+    {% for key, label, optional in [("date_col", "Coluna da data", False), ("description_col", "Coluna da descrição", False), ("amount_col", "Coluna do valor", False), ("type_col", "Tipo de movimento (opcional)", True), ("category_col", "Categoria (opcional)", True), ("external_id_col", "Identificador bancário (opcional)", True)] %}
+    <div>
+      <label class="label" for="m-{{ key }}">{{ label }}</label>
+      <select id="m-{{ key }}" name="{{ key }}" class="input" {% if not optional %}required{% endif %}>
+        {% if optional %}<option value="">— Não usar —</option>{% else %}<option value="">Selecione…</option>{% endif %}
+        {% for h in batch.headers %}<option value="{{ loop.index0 }}" {% if mapping[key] is defined and mapping[key] is not none and mapping[key]|int == loop.index0 %}selected{% endif %}>{{ loop.index0 }} · {{ h }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+    <div>
+      <label class="label" for="m-date-format">Formato das datas</label>
+      <select id="m-date-format" name="date_format" class="input">
+        {% for f in date_formats %}<option value="{{ f }}" {% if mapping.date_format == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+      </select>
+      {% if ambiguous %}<p class="mt-1 text-xs font-medium text-warning">Datas ambíguas (dia e mês ≤ 12): confirme se o formato está correto.</p>{% endif %}
+    </div>
+    <div>
+      <label class="label" for="m-inc">Categoria padrão de receitas</label>
+      <select id="m-inc" name="income_category_id" class="input">
+        {% for c in income_categories %}<option value="{{ c.id }}" {% if (mapping.income_category_id or "") == c.id|string or (not mapping.income_category_id and c.name == "Outras receitas") %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="m-exp">Categoria padrão de despesas</label>
+      <select id="m-exp" name="expense_category_id" class="input">
+        {% for c in expense_categories %}<option value="{{ c.id }}" {% if (mapping.expense_category_id or "") == c.id|string or (not mapping.expense_category_id and c.name == "Outros") %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <label class="flex items-center gap-2 text-sm md:col-span-3"><input type="checkbox" name="has_header" value="true" class="checkbox" {% if mapping.has_header %}checked{% endif %}> A primeira linha é um cabeçalho</label>
+    <div class="flex justify-end gap-2 md:col-span-3">
+      <button type="submit" class="btn btn-primary">{{ icon("table") }} {{ "Atualizar prévia" if batch.status.value == "mapped" else "Gerar prévia" }}</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+{% if batch.status.value == "mapped" %}
+<section id="previa" class="card mb-6 overflow-hidden" aria-labelledby="h-prev">
+  <header class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+    <h2 id="h-prev" class="text-base font-semibold">3. Prévia e seleção</h2>
+    <div class="flex flex-wrap gap-2 text-xs">
+      <span class="badge-positive">{{ stats.valid }} válidas</span>
+      <span class="badge-warning">{{ stats.possible_duplicate }} possíveis duplicatas</span>
+      <span class="badge-neutral">{{ stats.duplicate }} duplicatas</span>
+      <span class="badge-negative">{{ stats.invalid }} inválidas</span>
+    </div>
+  </header>
+  <form method="post" action="/app/importacoes/{{ batch.id }}/confirmar">
+    {{ csrf() }}{{ idem() }}
+    <div class="table-wrap max-h-[36rem] overflow-y-auto">
+      <table class="table text-sm">
+        <caption class="sr-only">Linhas a importar</caption>
+        <thead class="sticky top-0"><tr><th scope="col"><span class="sr-only">Importar</span></th><th scope="col">Linha</th><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Categoria</th><th scope="col" class="text-right">Valor</th><th scope="col">Situação</th></tr></thead>
+        <tbody>
+          {% for r in rows if r.status and r.status.value != "skipped" %}
+          {% set selectable = r.status.value in ("valid", "possible_duplicate") %}
+          <tr class="{{ 'bg-negative-soft/40' if r.status.value == 'invalid' }}">
+            <td>{% if selectable %}<input type="checkbox" class="checkbox" name="rows" value="{{ r.id }}" {% if r.selected %}checked{% endif %} aria-label="Importar linha {{ r.row_number }}">{% endif %}</td>
+            <td class="num text-xs text-muted">{{ r.row_number }}</td>
+            <td class="num whitespace-nowrap">{{ r.occurred_on|date_br if r.occurred_on else "—" }}</td>
+            <td>{{ r.description or "—" }}</td>
+            <td class="text-xs">{{ r.category_name or "—" }}</td>
+            <td class="num whitespace-nowrap text-right font-semibold {{ 'text-positive' if (r.amount_cents or 0) > 0 else 'text-negative' }}">{{ r.amount_cents|brl(True) if r.amount_cents else "—" }}</td>
+            <td class="text-xs">
+              {% set badge = {"valid": ("Válida", "badge-positive"), "invalid": ("Inválida", "badge-negative"), "duplicate": ("Duplicata", "badge-neutral"), "possible_duplicate": ("Possível duplicata", "badge-warning")}[r.status.value] %}
+              <span class="{{ badge[1] }}">{{ badge[0] }}</span>
+              {% if r.errors %}<ul class="mt-1 text-muted">{% for e in r.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+      <p class="text-xs text-muted">Possíveis duplicatas vêm desmarcadas — marque somente se tiver certeza. Os lançamentos serão criados como efetivados na conta {{ account.name }}.</p>
+      <button type="submit" class="btn btn-primary" data-confirm="Confirmar a importação das linhas selecionadas? Os saldos serão atualizados.">{{ icon("circle-check") }} Confirmar importação</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+{% if batch.status.value == "confirmed" and batch.report %}
+<section class="card card-pad mb-6" aria-labelledby="h-rep">
+  <h2 id="h-rep" class="text-base font-semibold">4. Relatório da importação</h2>
+  <dl class="mt-4 grid gap-4 sm:grid-cols-4">
+    <div><dt class="text-xs text-muted">Importadas</dt><dd class="num text-2xl font-bold text-positive">{{ batch.report.importadas }}</dd></div>
+    <div><dt class="text-xs text-muted">Falhas</dt><dd class="num text-2xl font-bold text-negative">{{ batch.report.falhas }}</dd></div>
+    <div><dt class="text-xs text-muted">Não selecionadas</dt><dd class="num text-2xl font-bold">{{ batch.report.ignoradas }}</dd></div>
+    <div><dt class="text-xs text-muted">Inválidas ou duplicadas</dt><dd class="num text-2xl font-bold">{{ batch.report.invalidas_ou_duplicadas }}</dd></div>
+  </dl>
+  {% if batch.report.detalhes_falhas %}
+  <h3 class="mt-6 text-sm font-semibold">Falhas</h3>
+  <ul class="mt-2 space-y-1 text-sm text-negative">{% for f in batch.report.detalhes_falhas %}<li>Linha {{ f.linha }}: {{ f.motivo }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="mt-6 flex gap-2"><a href="/app/transacoes?period=all&q=" class="btn btn-secondary">{{ icon("list") }} Ver transações</a><a href="/app/importacoes" class="btn btn-ghost">Nova importação</a></div>
+</section>
+{% endif %}
+
+{% if batch.status.value != "confirmed" %}
+<form method="post" action="/app/importacoes/{{ batch.id }}/descartar">{{ csrf() }}<button type="submit" class="btn btn-ghost text-negative" data-confirm="Descartar esta importação? Nenhum lançamento será criado.">{{ icon("trash-2") }} Descartar importação</button></form>
+{% endif %}
+{% endblock %}

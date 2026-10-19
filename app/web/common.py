@@ -9,7 +9,7 @@ from fastapi import Request
 from fastapi.responses import Response
 from starlette.datastructures import FormData
 
-from app.core.errors import AppError
+from app.core.errors import AppError, NotFoundError
 from app.web.render import is_htmx, page, redirect
 
 
@@ -44,7 +44,12 @@ def success(
 
 
 def failure(request: Request, exc: AppError, *, fallback_url: str) -> Response:
-    """Erro de regra de negócio em ações simples (sem formulário a reexibir)."""
+    """Erro de regra de negócio em ações simples (sem formulário a reexibir).
+
+    Recurso inexistente/de outro usuário continua sendo 404 (handler global).
+    """
+    if isinstance(exc, NotFoundError):
+        raise exc
     if is_htmx(request):
         payload = {"toast": {"message": exc.detail, "kind": "error"}}
         return Response(

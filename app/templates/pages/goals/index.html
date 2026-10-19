@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import empty_state, progress, regime with context %}
+{% block title %}Metas{% endblock %}
+{% block page_title %}Metas financeiras{% endblock %}
+{% block header_actions %}
+<a href="/app/metas/nova" hx-get="/app/metas/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova meta</span></a>
+{% endblock %}
+{% block content %}
+<div id="goals-page" hx-get="/app/metas{{ '?arquivadas=1' if show_archived }}" hx-trigger="refresh from:body" hx-select="#goals-page" hx-target="this" hx-swap="outerHTML">
+  <section class="card card-pad mb-6 grid gap-6 sm:grid-cols-3" aria-label="Disponível versus reservado">
+    <div><p class="text-xs text-muted">Disponível nas contas {{ regime("saldo") }}</p><p class="num mt-1 text-xl font-bold">{{ summary.available_cents|brl }}</p></div>
+    <div><p class="text-xs text-muted">Reservado em metas {{ regime("gerencial") }}</p><p class="num mt-1 text-xl font-bold text-accent">{{ summary.reserved_cents|brl }}</p></div>
+    <div><p class="text-xs text-muted">Livre (não reservado)</p><p class="num mt-1 text-xl font-bold {{ 'text-negative' if summary.free_cents < 0 else 'text-positive' }}">{{ summary.free_cents|brl }}</p></div>
+    <p class="text-xs text-muted sm:col-span-3">Reservas são gerenciais: não movimentam dinheiro nem reduzem o saldo das contas.</p>
+  </section>
+  {% if summary.over_reserved %}
+  <div class="mb-6 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning" role="alert">{{ icon("triangle-alert", "mt-0.5 size-4 shrink-0") }} O total reservado em metas é maior que o dinheiro disponível nas contas. Revise suas reservas.</div>
+  {% endif %}
+
+  {% if items %}
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {% for p in items %}
+    {% set g = p.goal %}
+    <a href="/app/metas/{{ g.id }}" class="card card-pad block transition hover:shadow-lift {{ 'opacity-60' if g.status.value == 'archived' }}">
+      <div class="flex items-start gap-3">
+        <span class="inline-flex size-11 items-center justify-center rounded-xl text-white {{ color_class(g.color) }}">{{ icon(g.icon, "size-5") }}</span>
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate font-semibold">{{ g.name }}</h2>
+          <p class="text-xs text-muted">{% if g.deadline %}Prazo {{ g.deadline|date_br }}{% else %}Sem prazo{% endif %}</p>
+        </div>
+        <span class="{{ {'active': 'badge-info', 'completed': 'badge-positive', 'archived': 'badge-neutral'}[g.status.value] }}">{{ labels[g.status] }}</span>
+      </div>
+      <div class="mt-5 flex items-end justify-between">
+        <p class="num text-xl font-bold">{{ p.allocated|brl }}</p>
+        <p class="num text-sm text-muted">de {{ g.target_cents|brl }}</p>
+      </div>
+      <div class="mt-2">{{ progress(p.pct|float, "positive" if p.reached else "accent", 0, "Progresso da meta " ~ g.name) }}</div>
+      <div class="mt-3 flex justify-between text-xs text-muted">
+        <span class="num font-semibold text-fg">{{ (p.pct|string).replace(".", ",") }}%</span>
+        <span>{% if p.reached %}Meta atingida{% elif p.estimated_completion %}Previsão: {{ p.estimated_completion|date_br }}{% else %}Sem ritmo recente de reservas{% endif %}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card">{{ empty_state("Nenhuma meta ainda", "Crie objetivos como reserva de emergência, viagem ou compra de computador e acompanhe o progresso.", "target", "/app/metas/nova", "Nova meta", dialog_id="drawer") }}</div>
+  {% endif %}
+  <p class="mt-6 text-sm"><a class="link" href="/app/metas{{ '' if show_archived else '?arquivadas=1' }}">{{ "Ocultar arquivadas" if show_archived else "Mostrar metas arquivadas" }}</a></p>
+</div>
+{% endblock %}

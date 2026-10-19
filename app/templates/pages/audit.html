@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% block title %}Auditoria{% endblock %}
+{% block page_title %}Auditoria da conta{% endblock %}
+{% block content %}
+<p class="mb-4 max-w-3xl text-sm text-muted">Registro imutável das operações realizadas na sua conta (horários exibidos em America/Sao_Paulo; armazenados em UTC). Senhas e tokens nunca são registrados.</p>
+<div class="card overflow-hidden">
+  <div class="table-wrap">
+    <table class="table text-sm">
+      <caption class="sr-only">Eventos de auditoria</caption>
+      <thead><tr><th scope="col">Quando</th><th scope="col">Evento</th><th scope="col">Entidade</th><th scope="col">Resultado</th><th scope="col" class="hidden lg:table-cell">Origem</th><th scope="col" class="hidden md:table-cell">Correlação</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="num whitespace-nowrap">{{ log.occurred_at|date_br }}</td>
+          <td><code class="text-xs">{{ log.event_type }}</code>{% if log.changes %}<details class="mt-1 text-xs text-muted"><summary class="cursor-pointer">detalhes</summary><pre class="mt-1 max-w-md overflow-x-auto whitespace-pre-wrap rounded bg-surface-2 p-2">{{ log.changes|tojson(indent=2) }}</pre></details>{% endif %}</td>
+          <td class="text-xs text-muted">{{ log.entity_type or "—" }}</td>
+          <td><span class="{{ 'badge-positive' if log.outcome == 'success' else 'badge-negative' }}">{{ "Sucesso" if log.outcome == "success" else "Falha" }}</span></td>
+          <td class="hidden text-xs text-muted lg:table-cell">{{ log.ip_address or "—" }}</td>
+          <td class="hidden text-xs text-muted md:table-cell"><code>{{ log.request_id or "—" }}</code></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="py-10 text-center text-muted">Nenhum evento registrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pages > 1 %}
+  <nav class="flex items-center justify-between border-t border-line px-4 py-3 text-sm" aria-label="Paginação">
+    <p class="text-muted">Página {{ page }} de {{ pages }} · {{ total }} eventos</p>
+    <div class="flex gap-2">
+      {% if page > 1 %}<a class="btn btn-secondary btn-sm" href="?page={{ page - 1 }}">Anterior</a>{% endif %}
+      {% if page < pages %}<a class="btn btn-secondary btn-sm" href="?page={{ page + 1 }}">Próxima</a>{% endif %}
+    </div>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

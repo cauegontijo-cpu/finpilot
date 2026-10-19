@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import empty_state, csrf with context %}
+{% block title %}Recorrências{% endblock %}
+{% block page_title %}Transações recorrentes{% endblock %}
+{% block header_actions %}
+<a href="/app/recorrencias/nova" hx-get="/app/recorrencias/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova recorrência</span></a>
+{% endblock %}
+{% block content %}
+<div id="rec-page" hx-get="/app/recorrencias" hx-trigger="refresh from:body" hx-select="#rec-page" hx-target="this" hx-swap="outerHTML">
+  <p class="mb-4 max-w-3xl text-sm text-muted">Ocorrências são geradas automaticamente como <strong>previstas</strong> (sem alterar o saldo) até 90 dias à frente. Efetive-as em Transações quando o pagamento ou recebimento acontecer, ou habilite a efetivação automática.</p>
+  {% if rules %}
+  <div class="card overflow-hidden">
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Recorrências</caption>
+        <thead><tr><th scope="col">Descrição</th><th scope="col">Frequência</th><th scope="col" class="hidden md:table-cell">Conta</th><th scope="col" class="hidden lg:table-cell">Próximas</th><th scope="col">Status</th><th scope="col" class="text-right">Valor</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+        <tbody>
+          {% for r in rules %}
+          <tr class="{{ 'opacity-60' if r.status.value == 'cancelled' }}">
+            <td><a href="/app/recorrencias/{{ r.id }}" class="font-medium hover:underline">{{ r.description }}</a><p class="text-xs text-muted">{{ r.category.name }}{% if r.auto_settle %} · efetivação automática{% endif %}</p></td>
+            <td class="text-sm">{{ freq_labels[r.frequency] }}{% if r.interval > 1 %} (a cada {{ r.interval }}){% endif %}</td>
+            <td class="hidden text-sm md:table-cell">{{ r.account.name }}</td>
+            <td class="hidden text-xs text-muted lg:table-cell">{% for d in upcoming[r.id] %}{{ d|date_br }}{% if not loop.last %} · {% endif %}{% else %}—{% endfor %}</td>
+            <td><span class="{{ {'active': 'badge-positive', 'paused': 'badge-warning', 'cancelled': 'badge-neutral'}[r.status.value] }}">{{ status_labels[r.status] }}</span></td>
+            <td class="num text-right font-semibold {{ 'text-positive' if r.type.value == 'income' else 'text-negative' }}">{{ "+" if r.type.value == "income" else "−" }}{{ r.amount_cents|brl }}</td>
+            <td class="whitespace-nowrap text-right">
+              {% if r.status.value == "active" %}
+              <form class="inline" method="post" action="/app/recorrencias/{{ r.id }}/pausar" hx-post="/app/recorrencias/{{ r.id }}/pausar">{{ csrf() }}<button class="btn-icon" type="submit" aria-label="Pausar {{ r.description }}">{{ icon("pause") }}</button></form>
+              {% elif r.status.value == "paused" %}
+              <form class="inline" method="post" action="/app/recorrencias/{{ r.id }}/retomar" hx-post="/app/recorrencias/{{ r.id }}/retomar">{{ csrf() }}<button class="btn-icon" type="submit" aria-label="Retomar {{ r.description }}">{{ icon("play") }}</button></form>
+              {% endif %}
+              {% if r.status.value != "cancelled" %}
+              <a href="/app/recorrencias/{{ r.id }}/editar" hx-get="/app/recorrencias/{{ r.id }}/editar" hx-target="#drawer-body" class="btn-icon" aria-label="Editar {{ r.description }}">{{ icon("pencil") }}</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">{{ empty_state("Nenhuma recorrência", "Cadastre salário, aluguel, contas de consumo e assinaturas para gerar lançamentos automaticamente.", "repeat", "/app/recorrencias/nova", "Nova recorrência", dialog_id="drawer") }}</div>
+  {% endif %}
+</div>
+{% endblock %}
