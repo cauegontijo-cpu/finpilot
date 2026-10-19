@@ -219,7 +219,7 @@
     const datasets = spec.datasets.map((d) => {
       const color = Array.isArray(d.color) ? d.color.map((c) => resolveColor(c, p)) : resolveColor(d.color, p);
       const base = { label: d.label, data: d.data, borderColor: color, backgroundColor: color, borderWidth: 2 };
-      if (spec.type === "line") Object.assign(base, { backgroundColor: (Array.isArray(color) ? color[0] : color) + "22", fill: d.fill ?? true, tension: 0.35, pointRadius: d.pointRadius ?? 2, borderDash: d.dashed ? [6, 4] : [] });
+      if (spec.type === "line") Object.assign(base, { backgroundColor: (Array.isArray(color) ? color[0] : color) + "22", fill: d.fill ?? true, tension: d.stepped ? 0 : 0.35, stepped: d.stepped ? "before" : false, pointRadius: d.pointRadius ?? 2, borderDash: d.dashed ? [6, 4] : [] });
       if (spec.type === "bar") Object.assign(base, { borderRadius: 6, borderWidth: 0, maxBarThickness: 28, stack: d.stack });
       if (spec.type === "doughnut") Object.assign(base, { borderColor: p.surface, borderWidth: 2, hoverOffset: 6 });
       return base;

@@ -73,10 +73,8 @@ def forecast(request: Request, session: VerifiedSession, svc: Svc) -> Response:
     if account_id and account_id not in {a.id for a in accounts}:
         account_id = None
     result = svc.forecast.build(user_id, svc.clock.today(), days, account_id)
-    step = 1 if days <= 30 else 2 if days <= 60 else 3
-    points = result.series[::step]
-    if result.series and points[-1] != result.series[-1]:
-        points.append(result.series[-1])
+    # Todos os dias: em linha em degraus, amostrar esconderia eventos.
+    points = result.series
     chart = {
         "type": "line",
         "legend": False,
@@ -87,6 +85,7 @@ def forecast(request: Request, session: VerifiedSession, svc: Svc) -> Response:
                 "data": [b for _, b in points],
                 "color": "primary",
                 "pointRadius": 0,
+                "stepped": True,
             }
         ],
     }
