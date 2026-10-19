@@ -19,7 +19,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.clock import Clock
-from app.core.errors import ConflictError, IdempotencyConflict, ValidationFailed
+from app.core.errors import ConflictError, IdempotencyConflict, ValidationFailed, expect
 from app.models import IdempotencyKey
 
 KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
@@ -81,6 +81,5 @@ class IdempotencyGuard:
     def complete(self, resource_id: uuid.UUID) -> None:
         if self._row_id is None:
             raise RuntimeError("complete() chamado sem begin() bem-sucedido")
-        row = self.db.get(IdempotencyKey, self._row_id)
-        assert row is not None
+        row = expect(self.db.get(IdempotencyKey, self._row_id))
         row.resource_id = resource_id

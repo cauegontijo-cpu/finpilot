@@ -11,7 +11,9 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
 # Parâmetros alinhados à recomendação OWASP para Argon2id (m=19 MiB, t=2, p=1) com folga.
-_hasher = PasswordHasher(time_cost=3, memory_cost=19 * 1024, parallelism=1, hash_len=32, salt_len=16)
+_hasher = PasswordHasher(
+    time_cost=3, memory_cost=19 * 1024, parallelism=1, hash_len=32, salt_len=16
+)
 
 # Hash fixo usado para equalizar o tempo de resposta quando o e-mail não existe.
 _DUMMY_HASH = _hasher.hash(secrets.token_urlsafe(16))
@@ -44,7 +46,7 @@ def password_problems(password: str, *, email: str = "", name: str = "") -> list
     if len(password) > MAX_PASSWORD_LENGTH:
         problems.append(f"A senha deve ter no máximo {MAX_PASSWORD_LENGTH} caracteres.")
     lowered = password.lower()
-    local = email.split("@")[0].lower()
+    local = email.split("@", maxsplit=1)[0].lower()
     if (local and len(local) >= 4 and local in lowered) or (
         name and any(len(p) >= 4 and p.lower() in lowered for p in name.split())
     ):
@@ -57,8 +59,18 @@ def password_problems(password: str, *, email: str = "", name: str = "") -> list
 
 
 _COMMON_PASSWORDS = {
-    "1234567890", "12345678910", "senha12345", "password123", "qwertyuiop", "abcdefghij",
-    "0123456789", "senha@1234", "admin12345", "brasil2026", "iloveyou12", "123456789a",
+    "1234567890",
+    "12345678910",
+    "senha12345",
+    "password123",
+    "qwertyuiop",
+    "abcdefghij",
+    "0123456789",
+    "senha@1234",
+    "admin12345",
+    "brasil2026",
+    "iloveyou12",
+    "123456789a",
 }
 
 

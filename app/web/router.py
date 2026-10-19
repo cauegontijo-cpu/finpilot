@@ -18,5 +18,18 @@ from app.web import (
 )
 
 web_router = APIRouter()
-for module in (public, auth, settings, dashboard, accounts, categories, transactions, budgets, planning, imports, reports, cards):
+for module in (
+    public,
+    auth,
+    settings,
+    dashboard,
+    accounts,
+    categories,
+    transactions,
+    budgets,
+    planning,
+    imports,
+    reports,
+    cards,
+):
     web_router.include_router(module.router)

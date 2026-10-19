@@ -51,6 +51,9 @@ ignore = [
     "PLR2004",  # constantes de domínio pequenas são legíveis no ponto de uso
     "RUF001", "RUF002", "RUF003",  # textos em pt-BR com acentuação
     "B008",     # FastAPI usa Depends() em valores padrão
+    "E501",     # o formatador (ruff format) é a referência de quebra de linha
+    "PLR0917",  # construtores de dataclasses de entrada com campos posicionais explícitos
+    "N818",     # exceções de domínio nomeadas pelo significado (ex.: InsufficientFunds)
 ]
 
 [tool.ruff.lint.per-file-ignores]

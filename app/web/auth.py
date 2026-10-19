@@ -77,7 +77,9 @@ def register_submit(
 
 
 @router.get("/verificar-email")
-def verify_email_page(request: Request, token: Annotated[str, Query(max_length=128)] = "") -> Response:
+def verify_email_page(
+    request: Request, token: Annotated[str, Query(max_length=128)] = ""
+) -> Response:
     # A confirmação exige um POST: pré-carregadores de links em clientes de e-mail não consomem o token.
     return page(
         request,
@@ -87,11 +89,15 @@ def verify_email_page(request: Request, token: Annotated[str, Query(max_length=1
 
 
 @router.post("/verificar-email")
-def verify_email(request: Request, auth: Auth, token: Annotated[str, Form(max_length=128)] = "") -> Response:
+def verify_email(
+    request: Request, auth: Auth, token: Annotated[str, Form(max_length=128)] = ""
+) -> Response:
     try:
         auth.verify_email(token)
     except InvalidToken as exc:
-        return page(request, "pages/auth/token_invalid.html", {"detail": exc.detail}, status_code=400)
+        return page(
+            request, "pages/auth/token_invalid.html", {"detail": exc.detail}, status_code=400
+        )
     return redirect(request, "/login", message="E-mail confirmado! Faça login para começar.")
 
 
@@ -114,7 +120,9 @@ def resend_verification(request: Request, session: CurrentSession, auth: Auth) -
 # ---------------------------------------------------------------- login
 @router.get("/login")
 def login_form(
-    request: Request, session: OptionalSession, next_url: Annotated[str | None, Query(alias="next")] = None
+    request: Request,
+    session: OptionalSession,
+    next_url: Annotated[str | None, Query(alias="next")] = None,
 ) -> Response:
     if session is not None:
         return redirect(request, safe_next_url(next_url))
@@ -150,7 +158,9 @@ def login_submit(
 
 
 @router.post("/logout")
-def logout(request: Request, auth: Auth, settings: AppSettings, session: OptionalSession) -> Response:
+def logout(
+    request: Request, auth: Auth, settings: AppSettings, session: OptionalSession
+) -> Response:
     if session is not None:
         auth.logout(session)
     response = redirect(request, "/login", message="Você saiu da sua conta.")
@@ -165,16 +175,22 @@ def forgot_form(request: Request) -> Response:
 
 
 @router.post("/recuperar-senha")
-def forgot_submit(request: Request, auth: Auth, email: Annotated[str, Form(max_length=320)] = "") -> Response:
+def forgot_submit(
+    request: Request, auth: Auth, email: Annotated[str, Form(max_length=320)] = ""
+) -> Response:
     try:
         auth.request_password_reset(email)
     except RateLimited as exc:
-        return page(request, "pages/auth/forgot.html", {"sent": False, "error": exc.detail}, status_code=429)
+        return page(
+            request, "pages/auth/forgot.html", {"sent": False, "error": exc.detail}, status_code=429
+        )
     return page(request, "pages/auth/forgot.html", {"sent": True})
 
 
 @router.get("/redefinir-senha")
-def reset_form(request: Request, auth: Auth, token: Annotated[str, Query(max_length=128)] = "") -> Response:
+def reset_form(
+    request: Request, auth: Auth, token: Annotated[str, Query(max_length=128)] = ""
+) -> Response:
     if not auth.check_reset_token(token):
         return page(
             request,
@@ -210,13 +226,17 @@ def reset_submit(
             {"token": token, "errors": exc.field_errors, "error": exc.detail},
             status_code=422,
         )
-    response = redirect(request, "/login", message="Senha redefinida. Todas as sessões foram encerradas.")
+    response = redirect(
+        request, "/login", message="Senha redefinida. Todas as sessões foram encerradas."
+    )
     clear_session_cookie(response, settings)
     return response
 
 
 @router.get("/confirmar-email")
-def confirm_email_change_page(request: Request, token: Annotated[str, Query(max_length=128)] = "") -> Response:
+def confirm_email_change_page(
+    request: Request, token: Annotated[str, Query(max_length=128)] = ""
+) -> Response:
     return page(
         request,
         "pages/auth/confirm_token.html",
@@ -231,5 +251,7 @@ def confirm_email_change(
     try:
         auth.confirm_email_change(token)
     except InvalidToken as exc:
-        return page(request, "pages/auth/token_invalid.html", {"detail": exc.detail}, status_code=400)
+        return page(
+            request, "pages/auth/token_invalid.html", {"detail": exc.detail}, status_code=400
+        )
     return redirect(request, "/app/configuracoes", message="E-mail atualizado com sucesso.")

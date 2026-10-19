@@ -34,20 +34,20 @@ os.environ.update(
 )
 os.environ.pop("REDIS_URL", None)
 
-from alembic import command  # noqa: E402
-from alembic.config import Config  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import Connection, create_engine, text  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
+from alembic.config import Config
+from fastapi.testclient import TestClient
+from sqlalchemy import Connection, create_engine, text
+from sqlalchemy.orm import Session
 
-from app.core.clock import Clock, FrozenClock  # noqa: E402
-from app.core.config import get_settings  # noqa: E402
-from app.core.database import get_db, get_engine  # noqa: E402
-from app.core.mailer import MemoryMailer  # noqa: E402
-from app.core.ratelimit import MemoryRateLimiter  # noqa: E402
-from app.core.security import csrf_token_for  # noqa: E402
-from app.main import app  # noqa: E402
-from app.services.audit import RequestMeta  # noqa: E402
+from alembic import command
+from app.core.clock import Clock, FrozenClock
+from app.core.config import get_settings
+from app.core.database import get_db, get_engine
+from app.core.mailer import MemoryMailer
+from app.core.ratelimit import MemoryRateLimiter
+from app.core.security import csrf_token_for
+from app.main import app
+from app.services.audit import RequestMeta
 
 TEST_PASSWORD = "Senha-Forte-Teste-2026"
 
@@ -80,7 +80,12 @@ def connection(migrated_engine: Any) -> Iterator[Connection]:
 
 @pytest.fixture
 def db(connection: Connection) -> Iterator[Session]:
-    session = Session(bind=connection, join_transaction_mode="create_savepoint", expire_on_commit=False, autoflush=False)
+    session = Session(
+        bind=connection,
+        join_transaction_mode="create_savepoint",
+        expire_on_commit=False,
+        autoflush=False,
+    )
     yield session
     session.close()
 
@@ -131,7 +136,9 @@ def csrf_for(client: TestClient) -> str:
 
 def post_form(client: TestClient, url: str, data: dict[str, Any], **kwargs: Any) -> Any:
     payload = {"csrf_token": csrf_for(client), **data}
-    return client.post(url, data=payload, follow_redirects=kwargs.pop("follow_redirects", False), **kwargs)
+    return client.post(
+        url, data=payload, follow_redirects=kwargs.pop("follow_redirects", False), **kwargs
+    )
 
 
 def api(client: TestClient, method: str, url: str, **kwargs: Any) -> Any:
@@ -148,14 +155,27 @@ def extract_token(text_body: str, path: str) -> str:
 
 
 # ---------------------------------------------------------------- usuários
-def make_user(db: Session, *, email: str = "ana@example.com", name: str = "Ana Souza", verified: bool = True) -> Any:
-    from app.services.auth import AuthService  # noqa: PLC0415
+def make_user(
+    db: Session, *, email: str = "ana@example.com", name: str = "Ana Souza", verified: bool = True
+) -> Any:
+    from app.services.auth import AuthService
 
-    service = AuthService(db, get_settings(), Clock(), MemoryRateLimiter(), MemoryMailer(), RequestMeta(ip="127.0.0.1"))
-    service.register(
-        full_name=name, email=email, password=TEST_PASSWORD, password_confirm=TEST_PASSWORD, accept_privacy=True
+    service = AuthService(
+        db,
+        get_settings(),
+        Clock(),
+        MemoryRateLimiter(),
+        MemoryMailer(),
+        RequestMeta(ip="127.0.0.1"),
     )
-    from app.models import User  # noqa: PLC0415
+    service.register(
+        full_name=name,
+        email=email,
+        password=TEST_PASSWORD,
+        password_confirm=TEST_PASSWORD,
+        accept_privacy=True,
+    )
+    from app.models import User
 
     user = db.query(User).filter(User.email == email).one()
     if verified:

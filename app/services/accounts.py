@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from dataclasses import dataclass, field
 from datetime import date
@@ -12,7 +13,15 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import Clock
 from app.core.errors import BusinessRuleViolation, ConflictError, ValidationFailed
-from app.models import Account, AccountType, CardPayment, ImportBatch, RecurrenceRule, Transaction, Transfer
+from app.models import (
+    Account,
+    AccountType,
+    CardPayment,
+    ImportBatch,
+    RecurrenceRule,
+    Transaction,
+    Transfer,
+)
 from app.models.base import model_snapshot
 from app.models.finance import MAX_CENTS
 from app.repositories.base import get_owned
@@ -21,8 +30,15 @@ from app.services.ledger import Ledger
 from app.utils.validation import clean_text, optional_text, validate_color, validate_icon
 
 _AUDIT_FIELDS = [
-    "name", "type", "institution", "color", "icon", "initial_balance_cents",
-    "start_date", "allow_negative", "archived_at",
+    "name",
+    "type",
+    "institution",
+    "color",
+    "icon",
+    "initial_balance_cents",
+    "start_date",
+    "allow_negative",
+    "archived_at",
 ]
 
 
@@ -40,7 +56,7 @@ class AccountInput:
 
 @dataclass
 class AccountSummary:
-    accounts: list[Account] = field(default_factory=list)
+    accounts: builtins.list[Account] = field(default_factory=list)
     total_cents: int = 0
 
 
@@ -51,31 +67,52 @@ class AccountService:
         self.audit = audit
 
     # ---------------------------------------------------------------- consultas
-    def list(self, user_id: uuid.UUID, *, include_archived: bool = False) -> list[Account]:
+    def list(self, user_id: uuid.UUID, *, include_archived: bool = False) -> builtins.list[Account]:
         stmt = select(Account).where(Account.user_id == user_id)
         if not include_archived:
             stmt = stmt.where(Account.archived_at.is_(None))
-        return list(self.db.scalars(stmt.order_by(Account.archived_at.is_not(None), func.lower(Account.name))))
+        return list(
+            self.db.scalars(
+                stmt.order_by(Account.archived_at.is_not(None), func.lower(Account.name))
+            )
+        )
 
     def summary(self, user_id: uuid.UUID) -> AccountSummary:
         accounts = self.list(user_id)
-        return AccountSummary(accounts=accounts, total_cents=sum(a.current_balance_cents for a in accounts))
+        return AccountSummary(
+            accounts=accounts, total_cents=sum(a.current_balance_cents for a in accounts)
+        )
 
-    def get(self, user_id: uuid.UUID, account_id: str | uuid.UUID, *, for_update: bool = False) -> Account:
-        return get_owned(self.db, Account, account_id, user_id, for_update=for_update, message="Conta não encontrada.")
+    def get(
+        self, user_id: uuid.UUID, account_id: str | uuid.UUID, *, for_update: bool = False
+    ) -> Account:
+        return get_owned(
+            self.db,
+            Account,
+            account_id,
+            user_id,
+            for_update=for_update,
+            message="Conta não encontrada.",
+        )
 
     def require_active(self, user_id: uuid.UUID, account_id: str | uuid.UUID | None) -> Account:
         if account_id in (None, ""):
-            raise ValidationFailed("Selecione uma conta.", field_errors={"account_id": "Obrigatória"})
-        account = self.get(user_id, account_id)  # type: ignore[arg-type]
+            raise ValidationFailed(
+                "Selecione uma conta.", field_errors={"account_id": "Obrigatória"}
+            )
+        account = self.get(user_id, account_id)
         if not account.is_active:
-            raise BusinessRuleViolation("Conta arquivada não aceita novas movimentações.", code="account_archived")
+            raise BusinessRuleViolation(
+                "Conta arquivada não aceita novas movimentações.", code="account_archived"
+            )
         return account
 
     def has_history(self, account_id: uuid.UUID) -> bool:
         checks = [
             exists().where(Transaction.account_id == account_id),
-            exists().where((Transfer.from_account_id == account_id) | (Transfer.to_account_id == account_id)),
+            exists().where(
+                (Transfer.from_account_id == account_id) | (Transfer.to_account_id == account_id)
+            ),
             exists().where(RecurrenceRule.account_id == account_id),
             exists().where(CardPayment.account_id == account_id),
             exists().where(ImportBatch.account_id == account_id),
@@ -184,7 +221,8 @@ class AccountService:
         account = self.get(user_id, account_id, for_update=True)
         if self.has_history(account.id):
             raise BusinessRuleViolation(
-                "Esta conta possui histórico financeiro e não pode ser excluída. Arquive-a.", code="RN009"
+                "Esta conta possui histórico financeiro e não pode ser excluída. Arquive-a.",
+                code="RN009",
             )
         self.audit.record(
             "account.deleted",

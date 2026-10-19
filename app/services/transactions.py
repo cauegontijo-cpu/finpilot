@@ -6,6 +6,7 @@ criados/alterados exclusivamente por seus próprios serviços.
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from dataclasses import dataclass, replace
 from datetime import date
@@ -34,8 +35,16 @@ from app.services.ledger import Ledger
 from app.utils.validation import clean_multiline, clean_text
 
 AUDIT_FIELDS = [
-    "type", "status", "account_id", "category_id", "description", "amount_cents",
-    "competence_date", "settlement_date", "due_date", "notes",
+    "type",
+    "status",
+    "account_id",
+    "category_id",
+    "description",
+    "amount_cents",
+    "competence_date",
+    "settlement_date",
+    "due_date",
+    "notes",
 ]
 
 SORTABLE = {
@@ -112,8 +121,17 @@ class TransactionService:
         self.categories = CategoryService(db, clock, audit)
 
     # ---------------------------------------------------------------- consultas
-    def get(self, user_id: uuid.UUID, tx_id: str | uuid.UUID, *, for_update: bool = False) -> Transaction:
-        return get_owned(self.db, Transaction, tx_id, user_id, for_update=for_update, message="Lançamento não encontrado.")
+    def get(
+        self, user_id: uuid.UUID, tx_id: str | uuid.UUID, *, for_update: bool = False
+    ) -> Transaction:
+        return get_owned(
+            self.db,
+            Transaction,
+            tx_id,
+            user_id,
+            for_update=for_update,
+            message="Lançamento não encontrado.",
+        )
 
     def _filtered(self, user_id: uuid.UUID, f: TransactionFilters) -> Select[Any]:
         stmt = select(Transaction).where(Transaction.user_id == user_id)
@@ -135,7 +153,9 @@ class TransactionService:
         if f.q:
             term = clean_text(f.q, max_len=100)
             if term:
-                stmt = stmt.where(Transaction.description.ilike(f"%{_like_escape(term)}%", escape="\\"))
+                stmt = stmt.where(
+                    Transaction.description.ilike(f"%{_like_escape(term)}%", escape="\\")
+                )
         return stmt
 
     def list(self, user_id: uuid.UUID, f: TransactionFilters) -> Page[Transaction]:
@@ -163,7 +183,7 @@ class TransactionService:
             expense_planned=values.get("expense_planned", 0),
         )
 
-    def history(self, user_id: uuid.UUID, tx_id: str) -> list[AuditLog]:
+    def history(self, user_id: uuid.UUID, tx_id: str) -> builtins.list[AuditLog]:
         tx = self.get(user_id, tx_id)
         ids = [tx.id]
         if tx.transfer_id:
@@ -180,7 +200,9 @@ class TransactionService:
     def _validate(self, user_id: uuid.UUID, data: TransactionInput) -> TransactionInput:
         errors: dict[str, str] = {}
         if data.type not in CATEGORIZED_TYPES:
-            raise ValidationFailed("Use a tela de transferências ou de cartões para este tipo.", code="invalid_type")
+            raise ValidationFailed(
+                "Use a tela de transferências ou de cartões para este tipo.", code="invalid_type"
+            )
         description = clean_text(data.description, max_len=140)
         if not description:
             errors["description"] = "Informe a descrição."
@@ -194,7 +216,9 @@ class TransactionService:
         if data.status is TransactionStatus.SETTLED:
             settlement = settlement or min(data.competence_date, self.clock.today())
             if settlement > self.clock.today():
-                errors["settlement_date"] = "Efetivação não pode ser futura. Registre como prevista."
+                errors["settlement_date"] = (
+                    "Efetivação não pode ser futura. Registre como prevista."
+                )
         else:
             settlement = None
         if errors:
@@ -204,7 +228,9 @@ class TransactionService:
         if settlement and settlement < account.start_date:
             raise ValidationFailed(
                 "Data de efetivação anterior ao início da conta.",
-                field_errors={"settlement_date": f"Conta iniciada em {account.start_date:%d/%m/%Y}"},
+                field_errors={
+                    "settlement_date": f"Conta iniciada em {account.start_date:%d/%m/%Y}"
+                },
             )
         kind = CategoryKind.INCOME if data.type is TransactionType.INCOME else CategoryKind.EXPENSE
         category = self.categories.require_for_type(user_id, data.category_id, kind)  # RN012
@@ -226,7 +252,9 @@ class TransactionService:
         idempotency_key: str,
         origin: TransactionOrigin = TransactionOrigin.MANUAL,
     ) -> Transaction:
-        guard = IdempotencyGuard(self.db, self.clock, user_id, idempotency_key, "transaction.create")
+        guard = IdempotencyGuard(
+            self.db, self.clock, user_id, idempotency_key, "transaction.create"
+        )
         replay = guard.begin(data.fingerprint())
         if replay is not None:
             return self.get(user_id, replay)  # RN017: requisição repetida não reaplica
@@ -293,19 +321,27 @@ class TransactionService:
         changes = diff(before, model_snapshot(tx, AUDIT_FIELDS))
         if changes:
             self.audit.record(
-                "transaction.updated", user_id=user_id, entity_type="transaction", entity_id=tx.id, changes=changes
+                "transaction.updated",
+                user_id=user_id,
+                entity_type="transaction",
+                entity_id=tx.id,
+                changes=changes,
             )
         self.db.commit()
         return tx
 
-    def settle(self, user_id: uuid.UUID, tx_id: str, settlement_date: date | None = None) -> Transaction:
+    def settle(
+        self, user_id: uuid.UUID, tx_id: str, settlement_date: date | None = None
+    ) -> Transaction:
         tx = self.get(user_id, tx_id, for_update=True)
         self._require_editable(tx)
         if tx.status is TransactionStatus.SETTLED:
             return tx  # idempotente
         when = settlement_date or self.clock.today()
         if when > self.clock.today():
-            raise ValidationFailed("Efetivação não pode ser futura.", field_errors={"settlement_date": "Data futura"})
+            raise ValidationFailed(
+                "Efetivação não pode ser futura.", field_errors={"settlement_date": "Data futura"}
+            )
         ledger = Ledger(self.db)
         account = ledger.lock(user_id, [tx.account_id])[tx.account_id]
         if when < account.start_date:
@@ -318,7 +354,10 @@ class TransactionService:
             user_id=user_id,
             entity_type="transaction",
             entity_id=tx.id,
-            changes={"status": {"antes": "planned", "depois": "settled"}, "settlement_date": when.isoformat()},
+            changes={
+                "status": {"antes": "planned", "depois": "settled"},
+                "settlement_date": when.isoformat(),
+            },
         )
         self.db.commit()
         return tx
@@ -350,5 +389,8 @@ class TransactionService:
 def overdue_filter(today: date) -> Any:
     return and_(
         Transaction.status == TransactionStatus.PLANNED,
-        or_(Transaction.due_date < today, and_(Transaction.due_date.is_(None), Transaction.competence_date < today)),
+        or_(
+            Transaction.due_date < today,
+            and_(Transaction.due_date.is_(None), Transaction.competence_date < today),
+        ),
     )

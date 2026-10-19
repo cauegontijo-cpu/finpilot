@@ -57,9 +57,13 @@ def make_account(
     )
 
 
-def category(db: Session, user: Any, name: str, kind: CategoryKind = CategoryKind.EXPENSE) -> Category:
+def category(
+    db: Session, user: Any, name: str, kind: CategoryKind = CategoryKind.EXPENSE
+) -> Category:
     return db.scalars(
-        select(Category).where(Category.user_id == user.id, Category.name == name, Category.kind == kind)
+        select(Category).where(
+            Category.user_id == user.id, Category.name == name, Category.kind == kind
+        )
     ).one()
 
 
@@ -83,7 +87,12 @@ def make_tx(
     idempotency_key: str | None = None,
 ) -> Any:
     kind = CategoryKind.INCOME if tx_type is TransactionType.INCOME else CategoryKind.EXPENSE
-    cat = category(db, user, category_name or ("Salário" if kind is CategoryKind.INCOME else "Alimentação"), kind)
+    cat = category(
+        db,
+        user,
+        category_name or ("Salário" if kind is CategoryKind.INCOME else "Alimentação"),
+        kind,
+    )
     return transactions(db, clock).create(
         user.id,
         TransactionInput(
@@ -102,10 +111,22 @@ def make_tx(
 
 
 def make_transfer(
-    db: Session, user: Any, source: Account, target: Account, amount: int, when: date = date(2026, 10, 10), **kw: Any
+    db: Session,
+    user: Any,
+    source: Account,
+    target: Account,
+    amount: int,
+    when: date = date(2026, 10, 10),
+    **kw: Any,
 ) -> Any:
     return transfers(db, kw.pop("clock", None)).create(
         user.id,
-        TransferInput(from_account_id=source.id, to_account_id=target.id, amount_cents=amount, transfer_date=when, **kw),
+        TransferInput(
+            from_account_id=source.id,
+            to_account_id=target.id,
+            amount_cents=amount,
+            transfer_date=when,
+            **kw,
+        ),
         idempotency_key=key(),
     )

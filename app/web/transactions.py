@@ -29,7 +29,9 @@ TRANSFER_FORM = "partials/transfers/form.html"
 
 
 # ---------------------------------------------------------------- filtros
-def _filters(request: Request, today: date) -> tuple[TransactionFilters, dict[str, str], Month | None]:
+def _filters(
+    request: Request, today: date
+) -> tuple[TransactionFilters, dict[str, str], Month | None]:
     q = request.query_params
     reader_errors: dict[str, str] = {}
     start = end = None
@@ -54,7 +56,7 @@ def _filters(request: Request, today: date) -> tuple[TransactionFilters, dict[st
         end=end,
         account_id=parse_uuid(q.get("account_id")),
         category_id=parse_uuid(q.get("category_id")),
-        status=TransactionStatus(status) if status in TransactionStatus._value2member_map_ else None,
+        status=_status_or_none(status),
         kind=kind if kind in ("income", "expense", "transfer", "card_payment") else None,
         q=(q.get("q") or "")[:100] or None,
         sort=q.get("sort") if q.get("sort") in _SORT_OPTIONS else None,
@@ -62,6 +64,13 @@ def _filters(request: Request, today: date) -> tuple[TransactionFilters, dict[st
     )
     raw = {k: v for k, v in q.items() if k != "page" and v}
     return filters, raw, month
+
+
+def _status_or_none(value: str | None) -> TransactionStatus | None:
+    try:
+        return TransactionStatus(value) if value else None
+    except ValueError:
+        return None
 
 
 _SORT_OPTIONS = {
@@ -100,7 +109,14 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
 
 
 # ---------------------------------------------------------------- formulário
-def _tx_ctx(svc: Svc, user_id: Any, tx: Transaction | None, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
+def _tx_ctx(
+    svc: Svc,
+    user_id: Any,
+    tx: Transaction | None,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
     categories = svc.categories.list(user_id)
     return {
         "tx": tx,
@@ -113,11 +129,15 @@ def _tx_ctx(svc: Svc, user_id: Any, tx: Transaction | None, values: dict[str, An
     }
 
 
-def _read_tx(form: Any, today: date, forced_type: TransactionType | None = None) -> TransactionInput:
+def _read_tx(
+    form: Any, today: date, forced_type: TransactionType | None = None
+) -> TransactionInput:
     reader = FormReader(form)
     tx_type = forced_type or reader.enum("type", TransactionType, TransactionType.EXPENSE)
     status = reader.enum("status", TransactionStatus, TransactionStatus.SETTLED)
-    category_field = "income_category_id" if tx_type is TransactionType.INCOME else "expense_category_id"
+    category_field = (
+        "income_category_id" if tx_type is TransactionType.INCOME else "expense_category_id"
+    )
     competence = reader.required_date("competence_date", today)
     data = TransactionInput(
         type=tx_type,
@@ -127,7 +147,9 @@ def _read_tx(form: Any, today: date, forced_type: TransactionType | None = None)
         amount_cents=reader.money("amount"),
         competence_date=competence,
         status=status,
-        settlement_date=reader.date("settlement_date", required=False) if status is TransactionStatus.SETTLED else None,
+        settlement_date=reader.date("settlement_date", required=False)
+        if status is TransactionStatus.SETTLED
+        else None,
         due_date=reader.date("due_date", required=False),
         notes=reader.text("notes") or None,
     )
@@ -153,7 +175,9 @@ def new(request: Request, session: VerifiedSession, svc: Svc, tipo: str = "expen
         "settlement_date": today,
         "account_id": request.query_params.get("account_id", ""),
     }
-    return form_view(request, TX_FORM, _tx_ctx(svc, session.user.id, None, values, {}), title="Novo lançamento")
+    return form_view(
+        request, TX_FORM, _tx_ctx(svc, session.user.id, None, values, {}), title="Novo lançamento"
+    )
 
 
 @router.post("/transacoes", dependencies=write_guard)
@@ -161,9 +185,13 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
     form = await request.form()
     try:
         data = _read_tx(form, svc.clock.today())
-        svc.transactions.create(session.user.id, data, idempotency_key=FormReader(form).raw("idempotency_key"))
+        svc.transactions.create(
+            session.user.id, data, idempotency_key=FormReader(form).raw("idempotency_key")
+        )
     except AppError as exc:
-        ctx = _tx_ctx(svc, session.user.id, None, form_values(form), _service_errors(exc), exc.detail)
+        ctx = _tx_ctx(
+            svc, session.user.id, None, form_values(form), _service_errors(exc), exc.detail
+        )
         return form_view(request, TX_FORM, ctx, title="Novo lançamento", status_code=422)
     label = "Receita registrada." if data.type is TransactionType.INCOME else "Despesa registrada."
     return success(request, label, fallback_url="/app/transacoes")
@@ -172,7 +200,9 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
 @router.get("/transacoes/{tx_id}/editar")
 def edit(request: Request, tx_id: str, session: VerifiedSession, svc: Svc) -> Response:
     tx = svc.transactions.get(session.user.id, tx_id)
-    category_key = "income_category_id" if tx.type is TransactionType.INCOME else "expense_category_id"
+    category_key = (
+        "income_category_id" if tx.type is TransactionType.INCOME else "expense_category_id"
+    )
     values = {
         "type": tx.type.value,
         "status": tx.status.value,
@@ -185,7 +215,9 @@ def edit(request: Request, tx_id: str, session: VerifiedSession, svc: Svc) -> Re
         "due_date": tx.due_date.isoformat() if tx.due_date else "",
         "notes": tx.notes or "",
     }
-    return form_view(request, TX_FORM, _tx_ctx(svc, session.user.id, tx, values, {}), title="Editar lançamento")
+    return form_view(
+        request, TX_FORM, _tx_ctx(svc, session.user.id, tx, values, {}), title="Editar lançamento"
+    )
 
 
 @router.post("/transacoes/{tx_id}", dependencies=write_guard)
@@ -225,7 +257,9 @@ def cancel(request: Request, tx_id: str, session: VerifiedSession, svc: Svc) -> 
 def history(request: Request, tx_id: str, session: VerifiedSession, svc: Svc) -> Response:
     tx = svc.transactions.get(session.user.id, tx_id)
     logs = svc.transactions.history(session.user.id, tx_id)
-    return form_view(request, "partials/transactions/history.html", {"tx": tx, "logs": logs}, title="Histórico")
+    return form_view(
+        request, "partials/transactions/history.html", {"tx": tx, "logs": logs}, title="Histórico"
+    )
 
 
 # ---------------------------------------------------------------- transferências
@@ -239,14 +273,26 @@ def transfers_index(request: Request, session: VerifiedSession, svc: Svc) -> Res
     return page(request, "pages/transfers/index.html", {"page_obj": result, "base_query": ""})
 
 
-def _transfer_ctx(svc: Svc, user_id: Any, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
-    return {"values": values, "errors": errors, "error": error, "accounts": svc.accounts.list(user_id)}
+def _transfer_ctx(
+    svc: Svc, user_id: Any, values: dict[str, Any], errors: dict[str, str], error: str | None = None
+) -> dict[str, Any]:
+    return {
+        "values": values,
+        "errors": errors,
+        "error": error,
+        "accounts": svc.accounts.list(user_id),
+    }
 
 
 @router.get("/transferencias/nova")
 def new_transfer(request: Request, session: VerifiedSession, svc: Svc) -> Response:
     values = {"transfer_date": svc.clock.today().isoformat(), "status": "settled"}
-    return form_view(request, TRANSFER_FORM, _transfer_ctx(svc, session.user.id, values, {}), title="Nova transferência")
+    return form_view(
+        request,
+        TRANSFER_FORM,
+        _transfer_ctx(svc, session.user.id, values, {}),
+        title="Nova transferência",
+    )
 
 
 @router.post("/transferencias", dependencies=write_guard)
@@ -263,7 +309,10 @@ async def create_transfer(request: Request, session: VerifiedSession, svc: Svc) 
             status=reader.enum("status", TransactionStatus, TransactionStatus.SETTLED),
         )
         if not data.from_account_id or not data.to_account_id:
-            reader.errors.setdefault("from_account_id" if not data.from_account_id else "to_account_id", "Selecione a conta")
+            reader.errors.setdefault(
+                "from_account_id" if not data.from_account_id else "to_account_id",
+                "Selecione a conta",
+            )
         reader.raise_if_errors()
         svc.transfers.create(session.user.id, data, idempotency_key=reader.raw("idempotency_key"))
     except AppError as exc:
@@ -273,7 +322,9 @@ async def create_transfer(request: Request, session: VerifiedSession, svc: Svc) 
 
 
 @router.post("/transferencias/{transfer_id}/efetivar", dependencies=write_guard)
-def settle_transfer(request: Request, transfer_id: str, session: VerifiedSession, svc: Svc) -> Response:
+def settle_transfer(
+    request: Request, transfer_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     try:
         svc.transfers.settle(session.user.id, transfer_id)
     except AppError as exc:
@@ -282,10 +333,15 @@ def settle_transfer(request: Request, transfer_id: str, session: VerifiedSession
 
 
 @router.post("/transferencias/{transfer_id}/cancelar", dependencies=write_guard)
-def cancel_transfer(request: Request, transfer_id: str, session: VerifiedSession, svc: Svc) -> Response:
+def cancel_transfer(
+    request: Request, transfer_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     try:
         svc.transfers.cancel(session.user.id, transfer_id)
     except AppError as exc:
         return failure(request, exc, fallback_url="/app/transferencias")
-    return success(request, "Transferência cancelada e estornada nas duas contas.", fallback_url="/app/transferencias")
-
+    return success(
+        request,
+        "Transferência cancelada e estornada nas duas contas.",
+        fallback_url="/app/transferencias",
+    )

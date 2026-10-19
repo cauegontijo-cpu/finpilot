@@ -109,7 +109,12 @@ def test_change_initial_balance_adjusts_current_by_delta(db: Session, user: Any)
     updated = accounts(db).update(
         user.id,
         str(account.id),
-        AccountInput(name=account.name, type=account.type, initial_balance_cents=20_000, start_date=account.start_date),
+        AccountInput(
+            name=account.name,
+            type=account.type,
+            initial_balance_cents=20_000,
+            start_date=account.start_date,
+        ),
     )
     assert updated.current_balance_cents == 17_500
     assert reconcile(db, updated) == 17_500
@@ -124,7 +129,9 @@ def test_duplicate_account_name_conflict(db: Session, user: Any) -> None:
 
 
 # ---------------------------------------------------------------- isolamento
-def test_user_cannot_use_other_users_account_or_category(db: Session, user: Any, other_user: Any) -> None:
+def test_user_cannot_use_other_users_account_or_category(
+    db: Session, user: Any, other_user: Any
+) -> None:
     mine = make_account(db, user)
     theirs = make_account(db, other_user, name="Conta do Bruno")
     their_category = category(db, other_user, "Alimentação")
@@ -142,7 +149,9 @@ def test_user_cannot_use_other_users_account_or_category(db: Session, user: Any,
     with pytest.raises(NotFoundError):
         service.create(
             user.id,
-            TransactionInput(**{**base.__dict__, "account_id": mine.id, "category_id": their_category.id}),
+            TransactionInput(
+                **{**base.__dict__, "account_id": mine.id, "category_id": their_category.id}
+            ),
             idempotency_key=key(),
         )  # RN012
 
@@ -233,7 +242,9 @@ def test_edit_settled_moves_amount_between_accounts_consistently(db: Session, us
     db.refresh(a)
     db.refresh(b)
     assert (a.current_balance_cents, b.current_balance_cents) == (10_000, 5_500)
-    assert reconcile(db, a) == a.current_balance_cents and reconcile(db, b) == b.current_balance_cents
+    assert (
+        reconcile(db, a) == a.current_balance_cents and reconcile(db, b) == b.current_balance_cents
+    )
     log = db.scalars(select(AuditLog).where(AuditLog.event_type == "transaction.updated")).one()
     assert log.changes["amount_cents"] == {"antes": 3_000, "depois": 4_500}
 
@@ -242,8 +253,12 @@ def test_edit_increasing_expense_beyond_balance_refused(db: Session, user: Any) 
     account = make_account(db, user, initial=5_000)
     tx = make_tx(db, user, account, 4_000)
     data = TransactionInput(
-        type=TransactionType.EXPENSE, account_id=account.id, category_id=tx.category_id,
-        description=tx.description, amount_cents=5_001, competence_date=tx.competence_date,
+        type=TransactionType.EXPENSE,
+        account_id=account.id,
+        category_id=tx.category_id,
+        description=tx.description,
+        amount_cents=5_001,
+        competence_date=tx.competence_date,
         settlement_date=tx.settlement_date,
     )
     with pytest.raises(InsufficientFunds):
@@ -293,7 +308,14 @@ def test_transfer_insufficient_funds_rolls_back_both_legs(db: Session, user: Any
     db.refresh(a)
     db.refresh(b)
     assert (a.current_balance_cents, b.current_balance_cents) == (1_000, 0)
-    assert db.scalar(select(func.count()).select_from(Transaction).where(Transaction.transfer_id.is_not(None))) == 0
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(Transaction)
+            .where(Transaction.transfer_id.is_not(None))
+        )
+        == 0
+    )
 
 
 def test_transfer_cancel_reverts_both_sides(db: Session, user: Any) -> None:
@@ -320,7 +342,12 @@ def test_transfer_cancel_refused_if_destination_already_spent(db: Session, user:
 def test_transfer_idempotency(db: Session, user: Any) -> None:
     a = make_account(db, user, name="A", initial=10_000)
     b = make_account(db, user, name="B", initial=0)
-    data = TransferInput(from_account_id=a.id, to_account_id=b.id, amount_cents=1_000, transfer_date=date(2026, 10, 1))
+    data = TransferInput(
+        from_account_id=a.id,
+        to_account_id=b.id,
+        amount_cents=1_000,
+        transfer_date=date(2026, 10, 1),
+    )
     first = transfers(db).create(user.id, data, idempotency_key="transf-key-0001")
     second = transfers(db).create(user.id, data, idempotency_key="transf-key-0001")
     assert first.id == second.id  # RN028
@@ -331,7 +358,9 @@ def test_transfer_idempotency(db: Session, user: Any) -> None:
 def test_planned_transfer_then_settle(db: Session, user: Any) -> None:
     a = make_account(db, user, name="A", initial=10_000)
     b = make_account(db, user, name="B", initial=0)
-    transfer = make_transfer(db, user, a, b, 1_000, when=date(2026, 12, 20), status=TransactionStatus.PLANNED)
+    transfer = make_transfer(
+        db, user, a, b, 1_000, when=date(2026, 12, 20), status=TransactionStatus.PLANNED
+    )
     db.refresh(a)
     assert a.current_balance_cents == 10_000
     transfers(db).settle(user.id, str(transfer.id))
@@ -343,10 +372,28 @@ def test_planned_transfer_then_settle(db: Session, user: Any) -> None:
 def test_transaction_listing_filters_and_search(db: Session, user: Any) -> None:
     account = make_account(db, user, initial=100_000)
     make_tx(db, user, account, 1_000, description="Padaria 50% off", when=date(2026, 9, 5))
-    make_tx(db, user, account, 2_000, description="Supermercado", when=date(2026, 10, 5), category_name="Compras")
-    make_tx(db, user, account, 9_000, tx_type=TransactionType.INCOME, description="Salário", when=date(2026, 10, 5))
+    make_tx(
+        db,
+        user,
+        account,
+        2_000,
+        description="Supermercado",
+        when=date(2026, 10, 5),
+        category_name="Compras",
+    )
+    make_tx(
+        db,
+        user,
+        account,
+        9_000,
+        tx_type=TransactionType.INCOME,
+        description="Salário",
+        when=date(2026, 10, 5),
+    )
     service = transactions(db)
-    october = service.list(user.id, TransactionFilters(start=date(2026, 10, 1), end=date(2026, 10, 31)))
+    october = service.list(
+        user.id, TransactionFilters(start=date(2026, 10, 1), end=date(2026, 10, 31))
+    )
     assert october.total == 2
     assert service.list(user.id, TransactionFilters(q="50%")).total == 1  # curinga escapado
     assert service.list(user.id, TransactionFilters(q="%")).total == 1

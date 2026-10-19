@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import safe_next_url
-from app.models import PasswordResetToken, UserSession
 from app.main import app
+from app.models import PasswordResetToken, UserSession
 from tests.conftest import TEST_PASSWORD, csrf_for, extract_token, login, post_form
 
 
@@ -60,14 +60,21 @@ def test_htmx_header_token_is_accepted(client: TestClient, user: Any) -> None:
 
 def test_login_brute_force_is_rate_limited_per_account(client: TestClient, user: Any) -> None:
     for _ in range(5):
-        assert post_form(client, "/login", {"email": user.email, "password": "senha-errada-xx"}).status_code == 401
+        assert (
+            post_form(
+                client, "/login", {"email": user.email, "password": "senha-errada-xx"}
+            ).status_code
+            == 401
+        )
     blocked = post_form(client, "/login", {"email": user.email, "password": TEST_PASSWORD})
     assert blocked.status_code == 429
     assert int(blocked.headers["Retry-After"]) > 0
 
 
 def test_password_reset_is_rate_limited(client: TestClient, user: Any) -> None:
-    statuses = [post_form(client, "/recuperar-senha", {"email": user.email}).status_code for _ in range(5)]
+    statuses = [
+        post_form(client, "/recuperar-senha", {"email": user.email}).status_code for _ in range(5)
+    ]
     assert statuses[:3] == [200, 200, 200]
     assert 429 in statuses
 
@@ -75,9 +82,19 @@ def test_password_reset_is_rate_limited(client: TestClient, user: Any) -> None:
 def test_expired_reset_token_is_rejected(client: TestClient, user: Any, db: Session) -> None:
     post_form(client, "/recuperar-senha", {"email": user.email})
     token = extract_token(app.state.mailer.outbox[-1].text, "/redefinir-senha")
-    db.execute(update(PasswordResetToken).values(expires_at=PasswordResetToken.created_at - timedelta(minutes=1)))
+    db.execute(
+        update(PasswordResetToken).values(
+            expires_at=PasswordResetToken.created_at - timedelta(minutes=1)
+        )
+    )
     response = post_form(
-        client, "/redefinir-senha", {"token": token, "password": "Nova-Senha-Segura-1", "password_confirm": "Nova-Senha-Segura-1"}
+        client,
+        "/redefinir-senha",
+        {
+            "token": token,
+            "password": "Nova-Senha-Segura-1",
+            "password_confirm": "Nova-Senha-Segura-1",
+        },
     )
     assert response.status_code == 400
     assert db.scalars(select(PasswordResetToken)).one().used_at is None
@@ -98,7 +115,11 @@ def test_idle_session_expires(client: TestClient, user: Any, db: Session) -> Non
     login(client, user.email)
     assert client.get("/app/configuracoes", follow_redirects=False).status_code == 200
     idle = get_settings().session_idle_timeout_minutes
-    db.execute(update(UserSession).values(last_seen_at=UserSession.last_seen_at - timedelta(minutes=idle + 1)))
+    db.execute(
+        update(UserSession).values(
+            last_seen_at=UserSession.last_seen_at - timedelta(minutes=idle + 1)
+        )
+    )
     response = client.get("/app/configuracoes", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"].startswith("/login")
@@ -112,7 +133,11 @@ def test_absolute_session_expiry(client: TestClient, user: Any, db: Session) -> 
 
 def test_session_cookie_flags(client: TestClient, user: Any) -> None:
     response = login(client, user.email)
-    cookie = next(h for h in response.headers.get_list("set-cookie") if h.startswith(get_settings().session_cookie_effective_name))
+    cookie = next(
+        h
+        for h in response.headers.get_list("set-cookie")
+        if h.startswith(get_settings().session_cookie_effective_name)
+    )
     assert "HttpOnly" in cookie
     assert "SameSite=lax" in cookie or "samesite=lax" in cookie.lower()
 
@@ -120,7 +145,11 @@ def test_session_cookie_flags(client: TestClient, user: Any) -> None:
 def test_security_headers_present(client: TestClient) -> None:
     response = client.get("/")
     csp = response.headers["Content-Security-Policy"]
-    assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp and "unsafe-inline" not in csp
+    assert (
+        "script-src 'self'" in csp
+        and "frame-ancestors 'none'" in csp
+        and "unsafe-inline" not in csp
+    )
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
     assert "Strict-Transport-Security" not in response.headers  # somente produção + HTTPS
@@ -144,7 +173,11 @@ def test_open_redirect_prevented(candidate: str | None, expected: str) -> None:
 
 
 def test_login_next_parameter_cannot_redirect_externally(client: TestClient, user: Any) -> None:
-    response = post_form(client, "/login", {"email": user.email, "password": TEST_PASSWORD, "next": "https://evil.example"})
+    response = post_form(
+        client,
+        "/login",
+        {"email": user.email, "password": TEST_PASSWORD, "next": "https://evil.example"},
+    )
     assert response.headers["location"] == "/app"
 
 
@@ -157,7 +190,7 @@ def test_errors_do_not_leak_internals(client: TestClient) -> None:
 
 
 def _hidden_csrf(html: str) -> str:
-    import re  # noqa: PLC0415
+    import re
 
     match = re.search(r'name="csrf_token" value="([0-9a-f]{64})"', html)
     assert match, "formulário sem token CSRF renderizado"
@@ -171,10 +204,19 @@ def test_rendered_forms_carry_valid_csrf_token(client: TestClient, user: Any) ->
     meta = re.search(r'name="csrf-token" content="([0-9a-f]{64})"', page.text)
     assert meta and meta.group(1) == token
     response = client.post(
-        "/login", data={"email": user.email, "password": TEST_PASSWORD, "csrf_token": token}, follow_redirects=False
+        "/login",
+        data={"email": user.email, "password": TEST_PASSWORD, "csrf_token": token},
+        follow_redirects=False,
     )
     assert response.status_code == 303
     settings_page = client.get("/app/configuracoes")
     token2 = _hidden_csrf(settings_page.text)
     assert token2 != token  # novo vínculo após login
-    assert client.post("/app/configuracoes/perfil", data={"full_name": "Ana S.", "csrf_token": token2}, follow_redirects=False).status_code == 303
+    assert (
+        client.post(
+            "/app/configuracoes/perfil",
+            data={"full_name": "Ana S.", "csrf_token": token2},
+            follow_redirects=False,
+        ).status_code
+        == 303
+    )

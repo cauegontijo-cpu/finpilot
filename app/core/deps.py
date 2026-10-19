@@ -79,7 +79,9 @@ def session_cookie(request: Request, settings: Settings) -> str | None:
     return request.cookies.get(settings.session_cookie_effective_name)
 
 
-def get_optional_session(request: Request, auth: Auth, settings: AppSettings) -> AuthenticatedSession | None:
+def get_optional_session(
+    request: Request, auth: Auth, settings: AppSettings
+) -> AuthenticatedSession | None:
     if hasattr(request.state, "auth"):
         cached: AuthenticatedSession | None = request.state.auth
         return cached

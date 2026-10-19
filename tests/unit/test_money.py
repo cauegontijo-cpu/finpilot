@@ -38,7 +38,9 @@ def test_parse_brl_formats(text: str, cents: int) -> None:
     assert parse_brl(text) == cents
 
 
-@pytest.mark.parametrize("text", ["", "   ", "abc", "1,2,3", "12,345", "1.23.4", "R$", "--5", "1e5"])
+@pytest.mark.parametrize(
+    "text", ["", "   ", "abc", "1,2,3", "12,345", "1.23.4", "R$", "--5", "1e5"]
+)
 def test_parse_brl_rejects_invalid(text: str) -> None:
     with pytest.raises(MoneyParseError):
         parse_brl(text)

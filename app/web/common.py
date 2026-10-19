@@ -37,9 +37,15 @@ def success(
 ) -> Response:
     """Sucesso: em HTMX fecha o diálogo, mostra toast e dispara atualização das listas."""
     if is_htmx(request):
-        payload = {"toast": {"message": message, "kind": "success"}, "closeDialog": True, "refresh": True}
+        payload = {
+            "toast": {"message": message, "kind": "success"},
+            "closeDialog": True,
+            "refresh": True,
+        }
         payload.update(events or {})
-        return Response(status_code=204, headers={"HX-Trigger": json.dumps(payload, ensure_ascii=True)})
+        return Response(
+            status_code=204, headers={"HX-Trigger": json.dumps(payload, ensure_ascii=True)}
+        )
     return redirect(request, fallback_url, message=message)
 
 

@@ -21,7 +21,12 @@ write_guard = [Depends(financial_rate_limit)]
 PARTIAL = "partials/categories/form.html"
 
 
-def _ctx(category: Category | None, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
+def _ctx(
+    category: Category | None,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
     return {
         "category": category,
         "values": values,
@@ -53,8 +58,14 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
         "pages/categories/index.html",
         {
             "groups": [
-                ("Despesas", [c for c in categories if c.kind is CategoryKind.EXPENSE and c.is_active]),
-                ("Receitas", [c for c in categories if c.kind is CategoryKind.INCOME and c.is_active]),
+                (
+                    "Despesas",
+                    [c for c in categories if c.kind is CategoryKind.EXPENSE and c.is_active],
+                ),
+                (
+                    "Receitas",
+                    [c for c in categories if c.kind is CategoryKind.INCOME and c.is_active],
+                ),
             ],
             "archived": [c for c in categories if not c.is_active],
             "kind_labels": KIND_LABELS,
@@ -64,7 +75,11 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
 
 @router.get("/nova")
 def new(request: Request, session: VerifiedSession, kind: str = "expense") -> Response:
-    values = {"kind": kind if kind in ("income", "expense") else "expense", "color": "#2563eb", "icon": "tag"}
+    values = {
+        "kind": kind if kind in ("income", "expense") else "expense",
+        "color": "#2563eb",
+        "icon": "tag",
+    }
     return form_view(request, PARTIAL, _ctx(None, values, {}), title="Nova categoria")
 
 
@@ -74,7 +89,13 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
     try:
         svc.categories.create(session.user.id, _read(form))
     except AppError as exc:
-        return form_view(request, PARTIAL, _ctx(None, form_values(form), exc.field_errors, exc.detail), title="Nova categoria", status_code=422)
+        return form_view(
+            request,
+            PARTIAL,
+            _ctx(None, form_values(form), exc.field_errors, exc.detail),
+            title="Nova categoria",
+            status_code=422,
+        )
     return success(request, "Categoria criada.", fallback_url="/app/categorias")
 
 
@@ -86,20 +107,32 @@ def edit(request: Request, category_id: str, session: VerifiedSession, svc: Svc)
 
 
 @router.post("/{category_id}", dependencies=write_guard)
-async def update(request: Request, category_id: str, session: VerifiedSession, svc: Svc) -> Response:
+async def update(
+    request: Request, category_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     c = svc.categories.get(session.user.id, category_id)
     form = await request.form()
     try:
         svc.categories.update(session.user.id, category_id, _read(form))
     except AppError as exc:
-        return form_view(request, PARTIAL, _ctx(c, form_values(form), exc.field_errors, exc.detail), title="Editar categoria", status_code=422)
+        return form_view(
+            request,
+            PARTIAL,
+            _ctx(c, form_values(form), exc.field_errors, exc.detail),
+            title="Editar categoria",
+            status_code=422,
+        )
     return success(request, "Categoria atualizada.", fallback_url="/app/categorias")
 
 
 @router.post("/{category_id}/arquivar", dependencies=write_guard)
 def archive(request: Request, category_id: str, session: VerifiedSession, svc: Svc) -> Response:
     svc.categories.set_archived(session.user.id, category_id, True)
-    return success(request, "Categoria arquivada. Os lançamentos antigos foram preservados.", fallback_url="/app/categorias")
+    return success(
+        request,
+        "Categoria arquivada. Os lançamentos antigos foram preservados.",
+        fallback_url="/app/categorias",
+    )
 
 
 @router.post("/{category_id}/reativar", dependencies=write_guard)

@@ -7,6 +7,7 @@ nos totais de receitas/despesas (RN026).
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from dataclasses import dataclass
 from datetime import date
@@ -48,8 +49,17 @@ class TransferService:
         self.audit = audit
         self.accounts = AccountService(db, clock, audit)
 
-    def get(self, user_id: uuid.UUID, transfer_id: str | uuid.UUID, *, for_update: bool = False) -> Transfer:
-        return get_owned(self.db, Transfer, transfer_id, user_id, for_update=for_update, message="Transferência não encontrada.")
+    def get(
+        self, user_id: uuid.UUID, transfer_id: str | uuid.UUID, *, for_update: bool = False
+    ) -> Transfer:
+        return get_owned(
+            self.db,
+            Transfer,
+            transfer_id,
+            user_id,
+            for_update=for_update,
+            message="Transferência não encontrada.",
+        )
 
     def list(self, user_id: uuid.UUID, page: int = 1, page_size: int = 25) -> Page[Transfer]:
         stmt = (
@@ -60,17 +70,21 @@ class TransferService:
         )
         return paginate(self.db, stmt, page, page_size)
 
-    def legs(self, transfer: Transfer) -> list[Transaction]:
+    def legs(self, transfer: Transfer) -> builtins.list[Transaction]:
         return list(
             self.db.scalars(
                 select(Transaction)
-                .where(Transaction.transfer_id == transfer.id, Transaction.user_id == transfer.user_id)
+                .where(
+                    Transaction.transfer_id == transfer.id, Transaction.user_id == transfer.user_id
+                )
                 .order_by(Transaction.type)
                 .with_for_update()
             )
         )
 
-    def _validate(self, user_id: uuid.UUID, data: TransferInput) -> tuple[uuid.UUID, uuid.UUID, str | None]:
+    def _validate(
+        self, user_id: uuid.UUID, data: TransferInput
+    ) -> tuple[uuid.UUID, uuid.UUID, str | None]:
         errors: dict[str, str] = {}
         if data.amount_cents <= 0:
             errors["amount"] = "O valor deve ser maior que zero."  # RN023
@@ -79,7 +93,9 @@ class TransferService:
         if str(data.from_account_id) == str(data.to_account_id):
             errors["to_account_id"] = "Origem e destino devem ser diferentes."  # RN021
         if data.status is TransactionStatus.SETTLED and data.transfer_date > self.clock.today():
-            errors["transfer_date"] = "Transferência efetivada não pode ter data futura. Agende como prevista."
+            errors["transfer_date"] = (
+                "Transferência efetivada não pode ter data futura. Agende como prevista."
+            )
         if data.status is TransactionStatus.CANCELLED:
             errors["status"] = "Status inválido."
         if errors:
@@ -144,8 +160,10 @@ class TransferService:
         self.db.flush()
         # RN024/RN025: as duas pernas no mesmo commit; qualquer falha (ex.: saldo) desfaz tudo.
         ledger.apply_many(
-            [(source_id, ledger.effect(out_leg.type, out_leg.status, out_leg.amount_cents)),
-             (target_id, ledger.effect(in_leg.type, in_leg.status, in_leg.amount_cents))]
+            [
+                (source_id, ledger.effect(out_leg.type, out_leg.status, out_leg.amount_cents)),
+                (target_id, ledger.effect(in_leg.type, in_leg.status, in_leg.amount_cents)),
+            ]
         )
         guard.complete(transfer.id)
         self.audit.record(
@@ -178,9 +196,16 @@ class TransferService:
         for leg in legs:
             leg.status = TransactionStatus.SETTLED
             leg.settlement_date = when
-        ledger.apply_many([(leg.account_id, ledger.effect(leg.type, leg.status, leg.amount_cents)) for leg in legs])
+        ledger.apply_many(
+            [
+                (leg.account_id, ledger.effect(leg.type, leg.status, leg.amount_cents))
+                for leg in legs
+            ]
+        )
         transfer.status = TransactionStatus.SETTLED
-        self.audit.record("transfer.settled", user_id=user_id, entity_type="transfer", entity_id=transfer.id)
+        self.audit.record(
+            "transfer.settled", user_id=user_id, entity_type="transfer", entity_id=transfer.id
+        )
         self.db.commit()
         return transfer
 
@@ -194,7 +219,10 @@ class TransferService:
         ledger.lock(user_id, [transfer.from_account_id, transfer.to_account_id])
         legs = self.legs(transfer)
         ledger.apply_many(
-            [(leg.account_id, -ledger.effect(leg.type, leg.status, leg.amount_cents)) for leg in legs]
+            [
+                (leg.account_id, -ledger.effect(leg.type, leg.status, leg.amount_cents))
+                for leg in legs
+            ]
         )
         now = self.clock.now()
         for leg in legs:

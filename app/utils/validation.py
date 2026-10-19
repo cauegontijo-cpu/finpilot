@@ -6,22 +6,65 @@ import re
 import unicodedata
 from datetime import date, datetime
 
-from app.core.errors import ValidationFailed
+from app.core.errors import ValidationFailed, expect
 
 _COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 #: Ícones que o usuário pode escolher para contas, categorias e metas.
 SELECTABLE_ICONS = [
-    "wallet", "landmark", "piggy-bank", "banknote", "coins", "credit-card", "smartphone",
-    "building-2", "briefcase", "laptop", "chart-line", "undo-2", "hand-coins", "gift",
-    "utensils", "house", "car", "heart-pulse", "graduation-cap", "gamepad-2", "tv",
-    "shopping-bag", "shopping-cart", "tag", "plane", "hammer", "zap", "wifi", "receipt",
-    "target", "shield-check", "sparkles", "layers", "scale",
+    "wallet",
+    "landmark",
+    "piggy-bank",
+    "banknote",
+    "coins",
+    "credit-card",
+    "smartphone",
+    "building-2",
+    "briefcase",
+    "laptop",
+    "chart-line",
+    "undo-2",
+    "hand-coins",
+    "gift",
+    "utensils",
+    "house",
+    "car",
+    "heart-pulse",
+    "graduation-cap",
+    "gamepad-2",
+    "tv",
+    "shopping-bag",
+    "shopping-cart",
+    "tag",
+    "plane",
+    "hammer",
+    "zap",
+    "wifi",
+    "receipt",
+    "target",
+    "shield-check",
+    "sparkles",
+    "layers",
+    "scale",
 ]
 PALETTE = [
-    "#0b1b3f", "#2563eb", "#0ea5e9", "#14b8a6", "#10b981", "#22c55e", "#84cc16", "#eab308",
-    "#f97316", "#ef4444", "#ec4899", "#8b5cf6", "#6366f1", "#64748b", "#7c3aed", "#0d9488",
+    "#0b1b3f",
+    "#2563eb",
+    "#0ea5e9",
+    "#14b8a6",
+    "#10b981",
+    "#22c55e",
+    "#84cc16",
+    "#eab308",
+    "#f97316",
+    "#ef4444",
+    "#ec4899",
+    "#8b5cf6",
+    "#6366f1",
+    "#64748b",
+    "#7c3aed",
+    "#0d9488",
     "#059669",
 ]
 
@@ -89,6 +132,4 @@ def parse_date(value: str | date | None, field: str, *, required: bool = True) -
 
 
 def require_date(value: str | date | None, field: str) -> date:
-    parsed = parse_date(value, field, required=True)
-    assert parsed is not None
-    return parsed
+    return expect(parse_date(value, field, required=True))

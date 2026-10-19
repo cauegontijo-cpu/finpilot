@@ -77,7 +77,8 @@ class Scope:
 def _installment_signed() -> Any:
     """Parcela (charge) soma; crédito de estorno (credit) subtrai."""
     return case(
-        (CardInstallment.kind == "charge", CardInstallment.amount_cents), else_=-CardInstallment.amount_cents
+        (CardInstallment.kind == "charge", CardInstallment.amount_cents),
+        else_=-CardInstallment.amount_cents,
     )
 
 
@@ -90,7 +91,9 @@ class AnalyticsService:
         self.db = db
 
     # ---------------------------------------------------------------- competência
-    def monthly_competence(self, user_id: uuid.UUID, start: Month, end: Month, scope: Scope | None = None) -> list[MonthTotals]:
+    def monthly_competence(
+        self, user_id: uuid.UUID, start: Month, end: Month, scope: Scope | None = None
+    ) -> list[MonthTotals]:
         scope = scope or Scope()
         result = {m: MonthTotals(month=m) for m in month_range(start, end)}
         y, m = _ym(Transaction.competence_date)
@@ -117,7 +120,9 @@ class AnalyticsService:
             setattr(bucket, key, getattr(bucket, key) + int(total))
 
         if scope.account_id is None:  # parcelas de cartão não pertencem a contas bancárias
-            for month_key, total in self._card_expense_by_month(user_id, start, end, scope.category_id).items():
+            for month_key, total in self._card_expense_by_month(
+                user_id, start, end, scope.category_id
+            ).items():
                 bucket = result.get(month_key)
                 if bucket:
                     bucket.expense += total
@@ -143,11 +148,20 @@ class AnalyticsService:
             stmt = stmt.where(CardPurchase.category_id == category_id)
         return {Month(int(yy), int(mm)): int(total or 0) for yy, mm, total in self.db.execute(stmt)}
 
-    def expenses_by_category(self, user_id: uuid.UUID, month: Month, scope: Scope | None = None) -> list[CategoryAmount]:
-        return self.by_category(user_id, month.first_day, month.last_day, CategoryKind.EXPENSE, scope)
+    def expenses_by_category(
+        self, user_id: uuid.UUID, month: Month, scope: Scope | None = None
+    ) -> list[CategoryAmount]:
+        return self.by_category(
+            user_id, month.first_day, month.last_day, CategoryKind.EXPENSE, scope
+        )
 
     def by_category(
-        self, user_id: uuid.UUID, start: date, end: date, kind: CategoryKind, scope: Scope | None = None
+        self,
+        user_id: uuid.UUID,
+        start: date,
+        end: date,
+        kind: CategoryKind,
+        scope: Scope | None = None,
     ) -> list[CategoryAmount]:
         """Totais por categoria na competência; despesas incluem parcelas de cartão."""
         scope = scope or Scope()
@@ -206,7 +220,9 @@ class AnalyticsService:
         )
 
     # ---------------------------------------------------------------- caixa
-    def cash_flow(self, user_id: uuid.UUID, start: date, end: date, scope: Scope | None = None) -> CashFlow:
+    def cash_flow(
+        self, user_id: uuid.UUID, start: date, end: date, scope: Scope | None = None
+    ) -> CashFlow:
         scope = scope or Scope()
         types = ["income", "expense", "card_payment"]
         if scope.account_id:
@@ -241,7 +257,9 @@ class AnalyticsService:
     ) -> list[tuple[Month, int]]:
         """Saldo realizado consolidado ao final de cada mês (regime de caixa)."""
         scope = scope or Scope()
-        acc_stmt = select(Account.start_date, Account.initial_balance_cents).where(Account.user_id == user_id)
+        acc_stmt = select(Account.start_date, Account.initial_balance_cents).where(
+            Account.user_id == user_id
+        )
         tx_filter = [Transaction.user_id == user_id, Transaction.status == "settled"]
         if scope.account_id:
             acc_stmt = acc_stmt.where(Account.id == scope.account_id)
@@ -253,14 +271,23 @@ class AnalyticsService:
             else_=-Transaction.amount_cents,
         )
         y, m = _ym(Transaction.settlement_date)
-        before = self.db.scalar(
-            select(func.coalesce(func.sum(signed), 0)).where(*tx_filter, Transaction.settlement_date < start.first_day)
-        ) or 0
+        before = (
+            self.db.scalar(
+                select(func.coalesce(func.sum(signed), 0)).where(
+                    *tx_filter, Transaction.settlement_date < start.first_day
+                )
+            )
+            or 0
+        )
         monthly = {
             Month(int(yy), int(mm)): int(total)
             for yy, mm, total in self.db.execute(
                 select(y, m, func.sum(signed))
-                .where(*tx_filter, Transaction.settlement_date >= start.first_day, Transaction.settlement_date <= end.last_day)
+                .where(
+                    *tx_filter,
+                    Transaction.settlement_date >= start.first_day,
+                    Transaction.settlement_date <= end.last_day,
+                )
                 .group_by("y", "m")
             )
         }

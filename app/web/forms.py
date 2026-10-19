@@ -6,8 +6,9 @@ e acumulamos erros por campo para reexibir o formulário.
 
 from __future__ import annotations
 
+import builtins
+import datetime as dt
 import uuid
-from datetime import date
 from enum import StrEnum
 from typing import TypeVar
 
@@ -35,10 +36,10 @@ class FormReader:
     def text(self, name: str, default: str = "") -> str:
         return self.raw(name) or default
 
-    def bool(self, name: str) -> bool:
+    def bool(self, name: str) -> builtins.bool:
         return self.raw(name).lower() in {"true", "on", "1", "sim"}
 
-    def money(self, name: str, *, positive: bool = True) -> int:
+    def money(self, name: str, *, positive: builtins.bool = True) -> int:
         try:
             if positive:
                 return parse_positive_brl(self.raw(name), MAX_CENTS)
@@ -50,14 +51,14 @@ class FormReader:
             self.errors[name] = _money_message(str(exc))
             return 0
 
-    def date(self, name: str, *, required: bool = True) -> date | None:
+    def date(self, name: str, *, required: builtins.bool = True) -> dt.date | None:
         try:
             return parse_date(self.raw(name), name, required=required)
         except ValidationFailed as exc:
             self.errors[name] = exc.field_errors.get(name, "Data inválida")
             return None
 
-    def required_date(self, name: str, fallback: date) -> date:
+    def required_date(self, name: str, fallback: dt.date) -> dt.date:
         return self.date(name) or fallback
 
     def enum(self, name: str, enum_cls: type[E], default: E | None = None) -> E:
@@ -101,7 +102,7 @@ def _money_message(reason: str) -> str:
     return "Valor inválido. Use o formato 1.234,56."
 
 
-def month_param(value: str | None, today: date) -> Month:
+def month_param(value: str | None, today: dt.date) -> Month:
     if value:
         try:
             return Month.parse(value)

@@ -48,7 +48,11 @@ def test_allocations_are_virtual_and_do_not_touch_balance(db: Session, user: Any
     assert account.current_balance_cents == 100_000  # RN039/RN040
     assert db.scalar(select(func.count()).select_from(Transaction)) == 0
     summary = service.reservation_summary(user.id)
-    assert (summary.available_cents, summary.reserved_cents, summary.free_cents) == (100_000, 20_000, 80_000)  # RN041
+    assert (summary.available_cents, summary.reserved_cents, summary.free_cents) == (
+        100_000,
+        20_000,
+        80_000,
+    )  # RN041
 
 
 def test_over_reservation_is_flagged_without_artificial_entries(db: Session, user: Any) -> None:
@@ -62,7 +66,9 @@ def test_over_reservation_is_flagged_without_artificial_entries(db: Session, use
 
 def test_progress_status_and_reversal(db: Session, user: Any) -> None:
     service = goals(db)
-    goal = service.create(user.id, GoalInput(name="Notebook", target_cents=10_000, deadline=date(2027, 4, 15)))
+    goal = service.create(
+        user.id, GoalInput(name="Notebook", target_cents=10_000, deadline=date(2027, 4, 15))
+    )
     first = service.allocate(user.id, str(goal.id), 6_000, date(2026, 9, 1))
     service.allocate(user.id, str(goal.id), 4_000, TODAY)
     db.refresh(goal)
@@ -104,8 +110,16 @@ def _rule(db: Session, user: Any, account: Any, **kw: Any) -> Any:
 def test_generation_links_occurrences_and_uses_last_valid_day(db: Session, user: Any) -> None:
     account = make_account(db, user, initial=1_000_000)
     rule = _rule(db, user, account)
-    occ = db.scalars(select(Transaction).where(Transaction.recurrence_id == rule.id).order_by(Transaction.occurrence_date)).all()
-    assert [t.occurrence_date for t in occ] == [date(2026, 10, 31), date(2026, 11, 30), date(2026, 12, 31)]  # RN046
+    occ = db.scalars(
+        select(Transaction)
+        .where(Transaction.recurrence_id == rule.id)
+        .order_by(Transaction.occurrence_date)
+    ).all()
+    assert [t.occurrence_date for t in occ] == [
+        date(2026, 10, 31),
+        date(2026, 11, 30),
+        date(2026, 12, 31),
+    ]  # RN046
     assert all(t.status is TransactionStatus.PLANNED for t in occ)  # RN049
     db.refresh(account)
     assert account.current_balance_cents == 1_000_000
@@ -127,20 +141,33 @@ def test_edit_changes_only_future_planned_occurrences(db: Session, user: Any) ->
     rule = _rule(db, user, account, start=date(2026, 9, 10))
     service = recurrences(db)
     past = db.scalars(
-        select(Transaction).where(Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 9, 10))
+        select(Transaction).where(
+            Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 9, 10)
+        )
     ).one()
-    from app.services.transactions import TransactionService  # noqa: PLC0415
+    from app.services.transactions import TransactionService
 
     TransactionService(db, clock(), audit(db)).settle(user.id, str(past.id), date(2026, 9, 10))
     data = RecurrenceInput(
-        type=rule.type, account_id=account.id, category_id=rule.category_id, description="Aluguel reajustado",
-        amount_cents=165_000, frequency=rule.frequency, start_date=rule.start_date,
+        type=rule.type,
+        account_id=account.id,
+        category_id=rule.category_id,
+        description="Aluguel reajustado",
+        amount_cents=165_000,
+        frequency=rule.frequency,
+        start_date=rule.start_date,
     )
     service.update(user.id, str(rule.id), data)
     db.refresh(past)
-    assert (past.amount_cents, past.description, past.status) == (150_000, "Aluguel", TransactionStatus.SETTLED)  # RN047
+    assert (past.amount_cents, past.description, past.status) == (
+        150_000,
+        "Aluguel",
+        TransactionStatus.SETTLED,
+    )  # RN047
     future = db.scalars(
-        select(Transaction).where(Transaction.recurrence_id == rule.id, Transaction.occurrence_date > TODAY)
+        select(Transaction).where(
+            Transaction.recurrence_id == rule.id, Transaction.occurrence_date > TODAY
+        )
     ).all()
     assert future and all(t.amount_cents == 165_000 for t in future)
 
@@ -150,10 +177,24 @@ def test_pause_resume_cancel(db: Session, user: Any) -> None:
     rule = _rule(db, user, account)
     service = recurrences(db)
     service.pause(user.id, str(rule.id))
-    assert db.scalar(select(func.count()).select_from(Transaction).where(Transaction.recurrence_id == rule.id)) == 0
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(Transaction)
+            .where(Transaction.recurrence_id == rule.id)
+        )
+        == 0
+    )
     assert service.next_occurrences(rule) == []
     service.resume(user.id, str(rule.id))
-    assert db.scalar(select(func.count()).select_from(Transaction).where(Transaction.recurrence_id == rule.id)) == 3
+    assert (
+        db.scalar(
+            select(func.count())
+            .select_from(Transaction)
+            .where(Transaction.recurrence_id == rule.id)
+        )
+        == 3
+    )
     service.cancel(user.id, str(rule.id))
     assert rule.status is RecurrenceStatus.CANCELLED
     with pytest.raises(BusinessRuleViolation):
@@ -162,8 +203,21 @@ def test_pause_resume_cancel(db: Session, user: Any) -> None:
 
 def test_auto_settle_effective_when_enabled(db: Session, user: Any) -> None:
     account = make_account(db, user, initial=10_000)
-    rule = _rule(db, user, account, start=date(2026, 10, 1), amount=3_000, auto_settle=True, category="Assinaturas", description="Streaming")
-    first = db.scalars(select(Transaction).where(Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 10, 1))).one()
+    rule = _rule(
+        db,
+        user,
+        account,
+        start=date(2026, 10, 1),
+        amount=3_000,
+        auto_settle=True,
+        category="Assinaturas",
+        description="Streaming",
+    )
+    first = db.scalars(
+        select(Transaction).where(
+            Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 10, 1)
+        )
+    ).one()
     assert first.status is TransactionStatus.SETTLED
     db.refresh(account)
     assert account.current_balance_cents == 7_000
@@ -172,7 +226,11 @@ def test_auto_settle_effective_when_enabled(db: Session, user: Any) -> None:
 def test_auto_settle_without_funds_stays_planned(db: Session, user: Any) -> None:
     account = make_account(db, user, initial=100)
     rule = _rule(db, user, account, start=date(2026, 10, 1), amount=3_000, auto_settle=True)
-    first = db.scalars(select(Transaction).where(Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 10, 1))).one()
+    first = db.scalars(
+        select(Transaction).where(
+            Transaction.recurrence_id == rule.id, Transaction.occurrence_date == date(2026, 10, 1)
+        )
+    ).one()
     assert first.status is TransactionStatus.PLANNED
     db.refresh(account)
     assert account.current_balance_cents == 100
@@ -182,12 +240,32 @@ def test_auto_settle_without_funds_stays_planned(db: Session, user: Any) -> None
 def test_goal_and_recurrence_pages(auth_client: TestClient, user: Any, db: Session) -> None:
     account = make_account(db, user, initial=100_000)
     hx = {"HX-Request": "true"}
-    assert post_form(auth_client, "/app/metas", {"name": "Viagem", "target": "5.000,00", "color": "#7c3aed", "icon": "plane"}, headers=hx).status_code == 204
+    assert (
+        post_form(
+            auth_client,
+            "/app/metas",
+            {"name": "Viagem", "target": "5.000,00", "color": "#7c3aed", "icon": "plane"},
+            headers=hx,
+        ).status_code
+        == 204
+    )
     assert auth_client.get("/app/metas").status_code == 200
     data = {
-        "type": "income", "description": "Salário", "amount": "7.000,00", "account_id": str(account.id),
-        "income_category_id": str(category(db, user, "Salário", kind=__import__("app.models", fromlist=["CategoryKind"]).CategoryKind.INCOME).id),
-        "frequency": "monthly", "interval": "1", "start_date": "2026-11-05",
+        "type": "income",
+        "description": "Salário",
+        "amount": "7.000,00",
+        "account_id": str(account.id),
+        "income_category_id": str(
+            category(
+                db,
+                user,
+                "Salário",
+                kind=__import__("app.models", fromlist=["CategoryKind"]).CategoryKind.INCOME,
+            ).id
+        ),
+        "frequency": "monthly",
+        "interval": "1",
+        "start_date": "2026-11-05",
     }
     response = post_form(auth_client, "/app/recorrencias", data, headers=hx)
     assert response.status_code == 204, response.text

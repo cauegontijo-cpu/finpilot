@@ -143,8 +143,12 @@ class CardInstallment(Base):
 
     __tablename__ = "card_installments"
     __table_args__ = (
-        UniqueConstraint("purchase_id", "number", "kind", name="uq_card_installments_purchase_number"),
-        CheckConstraint(f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"),
+        UniqueConstraint(
+            "purchase_id", "number", "kind", name="uq_card_installments_purchase_number"
+        ),
+        CheckConstraint(
+            f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"
+        ),
         CheckConstraint("number >= 1", name="number_positive"),
         ForeignKeyConstraint(
             ["statement_id", "user_id"],
@@ -168,7 +172,9 @@ class CardInstallment(Base):
     kind: Mapped[InstallmentKind] = mapped_column(str_enum(InstallmentKind, "installment_kind"))
     amount_cents: Mapped[int]
     competence_date: Mapped[date] = mapped_column(Date)
-    status: Mapped[InstallmentStatus] = mapped_column(str_enum(InstallmentStatus, "installment_status"))
+    status: Mapped[InstallmentStatus] = mapped_column(
+        str_enum(InstallmentStatus, "installment_status")
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     purchase: Mapped[CardPurchase] = relationship(
@@ -193,14 +199,18 @@ class PaymentStatus(StrEnum):
 class CardPayment(TimestampMixin, Base):
     __tablename__ = "card_payments"
     __table_args__ = (
-        CheckConstraint(f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"),
+        CheckConstraint(
+            f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"
+        ),
         ForeignKeyConstraint(
             ["statement_id", "user_id"],
             ["card_statements.id", "card_statements.user_id"],
             name="fk_card_payments_statement",
         ),
         ForeignKeyConstraint(
-            ["account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_card_payments_account"
+            ["account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_card_payments_account",
         ),
         Index("ix_card_payments_statement", "statement_id"),
     )

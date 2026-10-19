@@ -56,10 +56,14 @@ def _problem(
         body["code"] = code
     if errors:
         body["errors"] = errors
-    return JSONResponse(body, status_code=status, media_type="application/problem+json", headers=headers)
+    return JSONResponse(
+        body, status_code=status, media_type="application/problem+json", headers=headers
+    )
 
 
-def _error_page(request: Request, status: int, title: str, detail: str, headers: dict[str, str] | None = None) -> Response:
+def _error_page(
+    request: Request, status: int, title: str, detail: str, headers: dict[str, str] | None = None
+) -> Response:
     from app.web.render import is_htmx, page, toast_header  # noqa: PLC0415 - evita ciclo de import
 
     if is_htmx(request):
@@ -81,7 +85,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         if _is_api(request):
             errors = [{"field": k, "message": v} for k, v in exc.field_errors.items()] or None
             return _problem(
-                request, exc.status_code, exc.title, exc.detail, code=exc.code, errors=errors, headers=headers
+                request,
+                exc.status_code,
+                exc.title,
+                exc.detail,
+                code=exc.code,
+                errors=errors,
+                headers=headers,
             )
         if isinstance(exc, AuthenticationRequired) and exc.code == "auth_required":
             target = "/login?next=" + quote(request.url.path, safe="/")
@@ -102,7 +112,14 @@ def register_exception_handlers(app: FastAPI) -> None:
             for err in exc.errors()
         ]
         if _is_api(request):
-            return _problem(request, 422, "Dados inválidos", "Revise os campos informados.", code="validation", errors=errors)
+            return _problem(
+                request,
+                422,
+                "Dados inválidos",
+                "Revise os campos informados.",
+                code="validation",
+                errors=errors,
+            )
         return _error_page(request, 422, "Dados inválidos", "Os dados enviados são inválidos.")
 
     @app.exception_handler(StarletteHTTPException)
@@ -123,6 +140,6 @@ def register_exception_handlers(app: FastAPI) -> None:
             return _problem(request, 500, "Erro interno", detail)
         try:
             return _error_page(request, 500, "Erro interno", detail)
-        except Exception:  # noqa: BLE001 - última barreira: não pode falhar ao renderizar erro
+        except Exception:
             logger.exception("falha ao renderizar página de erro")
             return Response("Erro interno", status_code=500, media_type="text/plain")

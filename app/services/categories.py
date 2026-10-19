@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import uuid
 from dataclasses import dataclass
 
@@ -17,7 +18,7 @@ from app.repositories.base import get_owned
 from app.services.audit import AuditService, diff
 from app.utils.validation import clean_text, validate_color, validate_icon
 
-DEFAULT_CATEGORIES: list[tuple[str, CategoryKind, str, str]] = [
+DEFAULT_CATEGORIES: builtins.list[tuple[str, CategoryKind, str, str]] = [
     ("Alimentação", CategoryKind.EXPENSE, "#f97316", "utensils"),
     ("Moradia", CategoryKind.EXPENSE, "#0ea5e9", "house"),
     ("Transporte", CategoryKind.EXPENSE, "#eab308", "car"),
@@ -57,8 +58,12 @@ class CategoryService:
             self.db.add(Category(user_id=user_id, name=name, kind=kind, color=color, icon=icon))
 
     def list(
-        self, user_id: uuid.UUID, *, kind: CategoryKind | None = None, include_archived: bool = False
-    ) -> list[Category]:
+        self,
+        user_id: uuid.UUID,
+        *,
+        kind: CategoryKind | None = None,
+        include_archived: bool = False,
+    ) -> builtins.list[Category]:
         stmt = select(Category).where(Category.user_id == user_id)
         if kind is not None:
             stmt = stmt.where(Category.kind == kind)
@@ -67,21 +72,27 @@ class CategoryService:
         return list(self.db.scalars(stmt.order_by(Category.kind, func.lower(Category.name))))
 
     def get(self, user_id: uuid.UUID, category_id: str | uuid.UUID) -> Category:
-        return get_owned(self.db, Category, category_id, user_id, message="Categoria não encontrada.")
+        return get_owned(
+            self.db, Category, category_id, user_id, message="Categoria não encontrada."
+        )
 
     def require_for_type(
         self, user_id: uuid.UUID, category_id: str | uuid.UUID | None, kind: CategoryKind
     ) -> Category:
         """RN012: a categoria deve pertencer ao usuário, estar ativa e ser do tipo correto."""
         if category_id in (None, ""):
-            raise ValidationFailed("Selecione uma categoria.", field_errors={"category_id": "Obrigatória"})
-        category = self.get(user_id, category_id)  # type: ignore[arg-type]
+            raise ValidationFailed(
+                "Selecione uma categoria.", field_errors={"category_id": "Obrigatória"}
+            )
+        category = self.get(user_id, category_id)
         if category.kind is not kind:
             raise BusinessRuleViolation(
                 f"A categoria “{category.name}” não é de {KIND_LABELS[kind].lower()}.", code="RN012"
             )
         if not category.is_active:
-            raise BusinessRuleViolation("Categoria arquivada não aceita novos lançamentos.", code="RN012")
+            raise BusinessRuleViolation(
+                "Categoria arquivada não aceita novos lançamentos.", code="RN012"
+            )
         return category
 
     def _validate(self, data: CategoryInput) -> CategoryInput:
@@ -89,7 +100,10 @@ class CategoryService:
         if not name:
             raise ValidationFailed("Informe o nome.", field_errors={"name": "Obrigatório"})
         return CategoryInput(
-            name=name, kind=data.kind, color=validate_color(data.color), icon=validate_icon(data.icon)
+            name=name,
+            kind=data.kind,
+            color=validate_color(data.color),
+            icon=validate_icon(data.icon),
         )
 
     def create(self, user_id: uuid.UUID, data: CategoryInput) -> Category:
@@ -112,7 +126,8 @@ class CategoryService:
         data = self._validate(data)
         if data.kind is not category.kind and self._in_use(category.id):
             raise BusinessRuleViolation(
-                "Não é possível alterar o tipo de uma categoria com lançamentos.", code="category_in_use"
+                "Não é possível alterar o tipo de uma categoria com lançamentos.",
+                code="category_in_use",
             )
         before = model_snapshot(category, _AUDIT_FIELDS)
         for key, value in data.__dict__.items():

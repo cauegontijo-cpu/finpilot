@@ -21,7 +21,15 @@ write_guard = [Depends(financial_rate_limit)]
 PARTIAL = "partials/budgets/form.html"
 
 
-def _ctx(svc: Svc, user_id: Any, month: Month, budget: Budget | None, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
+def _ctx(
+    svc: Svc,
+    user_id: Any,
+    month: Month,
+    budget: Budget | None,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
     return {
         "month": month,
         "budget": budget,
@@ -40,14 +48,25 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
     return page(
         request,
         "pages/budgets/index.html",
-        {"o": overview, "month": month, "prev": month.shift(-1), "next": month.shift(1), "previous_count": len(previous.items)},
+        {
+            "o": overview,
+            "month": month,
+            "prev": month.shift(-1),
+            "next": month.shift(1),
+            "previous_count": len(previous.items),
+        },
     )
 
 
 @router.get("/novo")
 def new(request: Request, session: VerifiedSession, svc: Svc) -> Response:
     month = month_param(request.query_params.get("month"), svc.clock.today())
-    return form_view(request, PARTIAL, _ctx(svc, session.user.id, month, None, {"month": month.iso()}, {}), title="Novo orçamento")
+    return form_view(
+        request,
+        PARTIAL,
+        _ctx(svc, session.user.id, month, None, {"month": month.iso()}, {}),
+        title="Novo orçamento",
+    )
 
 
 @router.post("", dependencies=write_guard)
@@ -60,17 +79,30 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
         reader.raise_if_errors()
         svc.budgets.create(session.user.id, reader.raw("category_id") or None, month, limit)
     except AppError as exc:
-        ctx = _ctx(svc, session.user.id, month, None, form_values(form), exc.field_errors, exc.detail)
+        ctx = _ctx(
+            svc, session.user.id, month, None, form_values(form), exc.field_errors, exc.detail
+        )
         return form_view(request, PARTIAL, ctx, title="Novo orçamento", status_code=422)
-    return success(request, "Orçamento criado.", fallback_url=f"/app/orcamentos?month={month.iso()}")
+    return success(
+        request, "Orçamento criado.", fallback_url=f"/app/orcamentos?month={month.iso()}"
+    )
 
 
 @router.get("/{budget_id}/editar")
 def edit(request: Request, budget_id: str, session: VerifiedSession, svc: Svc) -> Response:
     budget = svc.budgets.get(session.user.id, budget_id)
     month = Month(budget.year, budget.month)
-    values = {"limit": format_input_brl(budget.limit_cents), "category_id": str(budget.category_id), "month": month.iso()}
-    return form_view(request, PARTIAL, _ctx(svc, session.user.id, month, budget, values, {}), title="Editar orçamento")
+    values = {
+        "limit": format_input_brl(budget.limit_cents),
+        "category_id": str(budget.category_id),
+        "month": month.iso(),
+    }
+    return form_view(
+        request,
+        PARTIAL,
+        _ctx(svc, session.user.id, month, budget, values, {}),
+        title="Editar orçamento",
+    )
 
 
 @router.post("/{budget_id}", dependencies=write_guard)
@@ -84,9 +116,13 @@ async def update(request: Request, budget_id: str, session: VerifiedSession, svc
         reader.raise_if_errors()
         svc.budgets.update(session.user.id, budget_id, limit)
     except AppError as exc:
-        ctx = _ctx(svc, session.user.id, month, budget, form_values(form), exc.field_errors, exc.detail)
+        ctx = _ctx(
+            svc, session.user.id, month, budget, form_values(form), exc.field_errors, exc.detail
+        )
         return form_view(request, PARTIAL, ctx, title="Editar orçamento", status_code=422)
-    return success(request, "Orçamento atualizado.", fallback_url=f"/app/orcamentos?month={month.iso()}")
+    return success(
+        request, "Orçamento atualizado.", fallback_url=f"/app/orcamentos?month={month.iso()}"
+    )
 
 
 @router.post("/{budget_id}/remover", dependencies=write_guard)
@@ -103,5 +139,9 @@ async def copy_previous(request: Request, session: VerifiedSession, svc: Svc) ->
         created = svc.budgets.copy_from_previous(session.user.id, month)
     except AppError as exc:
         return failure(request, exc, fallback_url=f"/app/orcamentos?month={month.iso()}")
-    message = f"{created} orçamento(s) copiado(s) do mês anterior." if created else "Nenhum orçamento novo para copiar."
+    message = (
+        f"{created} orçamento(s) copiado(s) do mês anterior."
+        if created
+        else "Nenhum orçamento novo para copiar."
+    )
     return success(request, message, fallback_url=f"/app/orcamentos?month={month.iso()}")

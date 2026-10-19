@@ -26,7 +26,9 @@ class Ledger:
         self.db = db
         self._locked: dict[uuid.UUID, Account] = {}
 
-    def lock(self, user_id: uuid.UUID, account_ids: Iterable[uuid.UUID | None]) -> dict[uuid.UUID, Account]:
+    def lock(
+        self, user_id: uuid.UUID, account_ids: Iterable[uuid.UUID | None]
+    ) -> dict[uuid.UUID, Account]:
         ids = sorted({a for a in account_ids if a is not None} - set(self._locked))
         if ids:
             rows = self.db.scalars(
@@ -53,7 +55,9 @@ class Ledger:
         account = self.account(account_id)
         new_balance = account.current_balance_cents + delta
         if abs(new_balance) > MAX_CENTS:
-            raise BusinessRuleViolation("Saldo resultante fora do limite aceito.", code="balance_range")
+            raise BusinessRuleViolation(
+                "Saldo resultante fora do limite aceito.", code="balance_range"
+            )
         if delta < 0 and not account.allow_negative and new_balance < 0:
             raise InsufficientFunds(account.name)
         account.current_balance_cents = new_balance

@@ -60,7 +60,11 @@ class Forecast:
 
     @property
     def lowest(self) -> tuple[date, int]:
-        return min(self.series, key=lambda p: (p[1], p[0])) if self.series else (self.start_date, self.starting_balance)
+        return (
+            min(self.series, key=lambda p: (p[1], p[0]))
+            if self.series
+            else (self.start_date, self.starting_balance)
+        )
 
     @property
     def negative_days(self) -> list[tuple[date, int]]:
@@ -89,14 +93,18 @@ class ForecastService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def build(self, user_id: uuid.UUID, today: date, days: int = 30, account_id: uuid.UUID | None = None) -> Forecast:
+    def build(
+        self, user_id: uuid.UUID, today: date, days: int = 30, account_id: uuid.UUID | None = None
+    ) -> Forecast:
         end = today + timedelta(days=days)
         accounts_stmt = select(func.coalesce(func.sum(Account.current_balance_cents), 0)).where(
             Account.user_id == user_id, Account.archived_at.is_(None)
         )
         if account_id:
             accounts_stmt = accounts_stmt.where(Account.id == account_id)
-        forecast = Forecast(start_date=today, end_date=end, starting_balance=int(self.db.scalar(accounts_stmt) or 0))
+        forecast = Forecast(
+            start_date=today, end_date=end, starting_balance=int(self.db.scalar(accounts_stmt) or 0)
+        )
         events: list[ForecastEvent] = []
         events += self._planned(user_id, today, end, account_id)
         events += self._recurrences(user_id, today, end, account_id)
@@ -133,7 +141,9 @@ class ForecastService:
             forecast.warnings.append("Há valores em atraso considerados como devidos hoje.")
         return forecast
 
-    def _planned(self, user_id: uuid.UUID, today: date, end: date, account_id: uuid.UUID | None) -> list[ForecastEvent]:
+    def _planned(
+        self, user_id: uuid.UUID, today: date, end: date, account_id: uuid.UUID | None
+    ) -> list[ForecastEvent]:
         expected = func.coalesce(Transaction.due_date, Transaction.competence_date)
         types = ["income", "expense"] + (["transfer_in", "transfer_out"] if account_id else [])
         stmt = select(Transaction).where(
@@ -160,17 +170,33 @@ class ForecastService:
             )
         return events
 
-    def _recurrences(self, user_id: uuid.UUID, today: date, end: date, account_id: uuid.UUID | None) -> list[ForecastEvent]:
+    def _recurrences(
+        self, user_id: uuid.UUID, today: date, end: date, account_id: uuid.UUID | None
+    ) -> list[ForecastEvent]:
         """Ocorrências ainda não materializadas pelo gerador (as já geradas entram como previstas)."""
-        stmt = select(RecurrenceRule).where(RecurrenceRule.user_id == user_id, RecurrenceRule.status == "active")
+        stmt = select(RecurrenceRule).where(
+            RecurrenceRule.user_id == user_id, RecurrenceRule.status == "active"
+        )
         if account_id:
             stmt = stmt.where(RecurrenceRule.account_id == account_id)
         events = []
         for rule in self.db.scalars(stmt):
-            window_start = max(today + timedelta(days=1), (rule.generated_until or rule.start_date - timedelta(days=1)) + timedelta(days=1))
+            window_start = max(
+                today + timedelta(days=1),
+                (rule.generated_until or rule.start_date - timedelta(days=1)) + timedelta(days=1),
+            )
             sign = 1 if rule.type.value == "income" else -1
-            for day in occurrences_between(rule.start_date, rule.frequency, rule.interval, window_start, end, rule.end_date):
-                events.append(ForecastEvent(day=day, description=rule.description, amount_cents=sign * rule.amount_cents, source="recurrence"))
+            for day in occurrences_between(
+                rule.start_date, rule.frequency, rule.interval, window_start, end, rule.end_date
+            ):
+                events.append(
+                    ForecastEvent(
+                        day=day,
+                        description=rule.description,
+                        amount_cents=sign * rule.amount_cents,
+                        source="recurrence",
+                    )
+                )
         return events
 
     def _cards(self, user_id: uuid.UUID, today: date, end: date) -> list[ForecastEvent]:

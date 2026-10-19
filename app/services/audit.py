@@ -113,7 +113,7 @@ class AuditService:
         """Registra em transação separada — para falhas que não devem ser desfeitas."""
         bind = self.db.get_bind()
         maker = get_sessionmaker() if bind is None else None
-        with (maker() if maker else Session(bind=bind)) as other:
+        with maker() if maker else Session(bind=bind) as other:
             other.add(
                 self._build(
                     event_type,
@@ -127,7 +127,12 @@ class AuditService:
             other.commit()
 
     def list_for_user(
-        self, user_id: uuid.UUID, *, entity_id: uuid.UUID | None = None, limit: int = 50, offset: int = 0
+        self,
+        user_id: uuid.UUID,
+        *,
+        entity_id: uuid.UUID | None = None,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[AuditLog]:
         stmt = select(AuditLog).where(AuditLog.user_id == user_id)
         if entity_id is not None:

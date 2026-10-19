@@ -16,9 +16,15 @@ class EmailRenderer:
 
     def _build(self, to: str, subject: str, template: str, **context: Any) -> OutgoingEmail:
         context.update(app_name=self.settings.app_name, base_url=self.settings.base_url.rstrip("/"))
-        html = templates.env.get_template(f"emails/{template}.html").render(subject=subject, **context)
-        text = templates.env.get_template(f"emails/{template}.txt").render(subject=subject, **context)
-        return OutgoingEmail(to=to, subject=f"{subject} · {self.settings.app_name}", text=text, html=html)
+        html = templates.env.get_template(f"emails/{template}.html").render(
+            subject=subject, **context
+        )
+        text = templates.env.get_template(f"emails/{template}.txt").render(
+            subject=subject, **context
+        )
+        return OutgoingEmail(
+            to=to, subject=f"{subject} · {self.settings.app_name}", text=text, html=html
+        )
 
     def _url(self, path: str) -> str:
         return self.settings.base_url.rstrip("/") + path
@@ -54,7 +60,10 @@ class EmailRenderer:
 
     def password_changed(self, user: User) -> OutgoingEmail:
         return self._build(
-            user.email, "Sua senha foi alterada", "password_changed", name=user.first_name,
+            user.email,
+            "Sua senha foi alterada",
+            "password_changed",
+            name=user.first_name,
             link=self._url("/recuperar-senha"),
         )
 
@@ -69,8 +78,11 @@ class EmailRenderer:
         )
 
     def email_change_notice(self, user: User, new_email: str) -> OutgoingEmail:
-        masked = new_email[0] + "***@" + new_email.split("@")[-1]
+        masked = new_email[0] + "***@" + new_email.rsplit("@", maxsplit=1)[-1]
         return self._build(
-            user.email, "Solicitação de troca de e-mail", "email_change_notice",
-            name=user.first_name, masked=masked,
+            user.email,
+            "Solicitação de troca de e-mail",
+            "email_change_notice",
+            name=user.first_name,
+            masked=masked,
         )

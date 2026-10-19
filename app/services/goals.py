@@ -6,6 +6,7 @@ Alocações são RESERVAS VIRTUAIS: não criam lançamentos nem alteram saldos b
 
 from __future__ import annotations
 
+import builtins
 import math
 import uuid
 from dataclasses import dataclass
@@ -111,10 +112,14 @@ class GoalService:
         self.clock = clock
         self.audit = audit
 
-    def get(self, user_id: uuid.UUID, goal_id: str | uuid.UUID, *, for_update: bool = False) -> Goal:
-        return get_owned(self.db, Goal, goal_id, user_id, for_update=for_update, message="Meta não encontrada.")
+    def get(
+        self, user_id: uuid.UUID, goal_id: str | uuid.UUID, *, for_update: bool = False
+    ) -> Goal:
+        return get_owned(
+            self.db, Goal, goal_id, user_id, for_update=for_update, message="Meta não encontrada."
+        )
 
-    def _allocated(self, goal_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+    def _allocated(self, goal_ids: builtins.list[uuid.UUID]) -> dict[uuid.UUID, int]:
         if not goal_ids:
             return {}
         rows = self.db.execute(
@@ -124,7 +129,9 @@ class GoalService:
         )
         return {gid: int(total) for gid, total in rows}
 
-    def _recent_average(self, goal_ids: list[uuid.UUID], today: date) -> dict[uuid.UUID, int]:
+    def _recent_average(
+        self, goal_ids: builtins.list[uuid.UUID], today: date
+    ) -> dict[uuid.UUID, int]:
         if not goal_ids:
             return {}
         since = Month.of(today).shift(-2).first_day
@@ -135,25 +142,34 @@ class GoalService:
         )
         return {gid: int(total) // 3 for gid, total in rows}
 
-    def list(self, user_id: uuid.UUID, *, include_archived: bool = False) -> list[GoalProgress]:
+    def list(
+        self, user_id: uuid.UUID, *, include_archived: bool = False
+    ) -> builtins.list[GoalProgress]:
         stmt = select(Goal).where(Goal.user_id == user_id)
         if not include_archived:
             stmt = stmt.where(Goal.status != GoalStatus.ARCHIVED)
-        goals = list(self.db.scalars(stmt.order_by(Goal.status, Goal.deadline.nulls_last(), Goal.name)))
+        goals = list(
+            self.db.scalars(stmt.order_by(Goal.status, Goal.deadline.nulls_last(), Goal.name))
+        )
         ids = [g.id for g in goals]
         allocated = self._allocated(ids)
         averages = self._recent_average(ids, self.clock.today())
         today = self.clock.today()
-        return [GoalProgress(g, allocated.get(g.id, 0), averages.get(g.id, 0), today) for g in goals]
+        return [
+            GoalProgress(g, allocated.get(g.id, 0), averages.get(g.id, 0), today) for g in goals
+        ]
 
     def progress(self, user_id: uuid.UUID, goal_id: str) -> GoalProgress:
         goal = self.get(user_id, goal_id)
         today = self.clock.today()
         return GoalProgress(
-            goal, self._allocated([goal.id]).get(goal.id, 0), self._recent_average([goal.id], today).get(goal.id, 0), today
+            goal,
+            self._allocated([goal.id]).get(goal.id, 0),
+            self._recent_average([goal.id], today).get(goal.id, 0),
+            today,
         )
 
-    def allocations(self, user_id: uuid.UUID, goal_id: str) -> list[GoalAllocation]:
+    def allocations(self, user_id: uuid.UUID, goal_id: str) -> builtins.list[GoalAllocation]:
         goal = self.get(user_id, goal_id)
         return list(
             self.db.scalars(
@@ -209,7 +225,13 @@ class GoalService:
         goal = Goal(user_id=user_id, status=GoalStatus.ACTIVE, **data.__dict__)
         self.db.add(goal)
         self.db.flush()
-        self.audit.record("goal.created", user_id=user_id, entity_type="goal", entity_id=goal.id, changes=model_snapshot(goal, _FIELDS))
+        self.audit.record(
+            "goal.created",
+            user_id=user_id,
+            entity_type="goal",
+            entity_id=goal.id,
+            changes=model_snapshot(goal, _FIELDS),
+        )
         self.db.commit()
         return goal
 
@@ -222,7 +244,10 @@ class GoalService:
             setattr(goal, key, value)
         self._refresh_status(goal)
         self.audit.record(
-            "goal.updated", user_id=user_id, entity_type="goal", entity_id=goal.id,
+            "goal.updated",
+            user_id=user_id,
+            entity_type="goal",
+            entity_id=goal.id,
             changes=diff(before, model_snapshot(goal, _FIELDS)),
         )
         self.db.commit()
@@ -233,61 +258,113 @@ class GoalService:
         goal.status = GoalStatus.ARCHIVED if archived else GoalStatus.ACTIVE
         if not archived:
             self._refresh_status(goal)
-        self.audit.record("goal.archived" if archived else "goal.restored", user_id=user_id, entity_type="goal", entity_id=goal.id)
+        self.audit.record(
+            "goal.archived" if archived else "goal.restored",
+            user_id=user_id,
+            entity_type="goal",
+            entity_id=goal.id,
+        )
         self.db.commit()
         return goal
 
-    def allocate(self, user_id: uuid.UUID, goal_id: str, amount_cents: int, when: date | None = None, note: str | None = None) -> GoalAllocation:
+    def allocate(
+        self,
+        user_id: uuid.UUID,
+        goal_id: str,
+        amount_cents: int,
+        when: date | None = None,
+        note: str | None = None,
+    ) -> GoalAllocation:
         goal = self.get(user_id, goal_id, for_update=True)
         if goal.status is GoalStatus.ARCHIVED:
-            raise BusinessRuleViolation("Meta arquivada não recebe alocações.", code="goal_archived")
+            raise BusinessRuleViolation(
+                "Meta arquivada não recebe alocações.", code="goal_archived"
+            )
         if amount_cents <= 0 or amount_cents > MAX_CENTS:
-            raise ValidationFailed("Informe um valor positivo.", field_errors={"amount": "Valor inválido"})
+            raise ValidationFailed(
+                "Informe um valor positivo.", field_errors={"amount": "Valor inválido"}
+            )
         when = when or self.clock.today()
         if when > self.clock.today():
-            raise ValidationFailed("A data da alocação não pode ser futura.", field_errors={"allocation_date": "Data futura"})
+            raise ValidationFailed(
+                "A data da alocação não pode ser futura.",
+                field_errors={"allocation_date": "Data futura"},
+            )
         allocation = GoalAllocation(
-            user_id=user_id, goal_id=goal.id, amount_cents=amount_cents, allocation_date=when,
+            user_id=user_id,
+            goal_id=goal.id,
+            amount_cents=amount_cents,
+            allocation_date=when,
             note=clean_text(note, max_len=200) or None,
         )
         self.db.add(allocation)
         self.db.flush()
         self._refresh_status(goal)
         self.audit.record(
-            "goal.allocated", user_id=user_id, entity_type="goal", entity_id=goal.id,
-            changes={"amount_cents": amount_cents, "allocation_date": when.isoformat(), "reserva_virtual": True},
+            "goal.allocated",
+            user_id=user_id,
+            entity_type="goal",
+            entity_id=goal.id,
+            changes={
+                "amount_cents": amount_cents,
+                "allocation_date": when.isoformat(),
+                "reserva_virtual": True,
+            },
         )
         self.db.commit()
         return allocation
 
-    def reverse_allocation(self, user_id: uuid.UUID, goal_id: str, allocation_id: str) -> GoalAllocation:
+    def reverse_allocation(
+        self, user_id: uuid.UUID, goal_id: str, allocation_id: str
+    ) -> GoalAllocation:
         """Reversão cria uma linha negativa vinculada à original (histórico preservado)."""
         goal = self.get(user_id, goal_id, for_update=True)
-        original = get_owned(self.db, GoalAllocation, allocation_id, user_id, message="Alocação não encontrada.")
-        if original.goal_id != goal.id or original.amount_cents <= 0 or original.reverses_id is not None:
-            raise BusinessRuleViolation("Esta alocação não pode ser revertida.", code="invalid_reversal")
-        already = self.db.scalar(select(GoalAllocation.id).where(GoalAllocation.reverses_id == original.id))
+        original = get_owned(
+            self.db, GoalAllocation, allocation_id, user_id, message="Alocação não encontrada."
+        )
+        if (
+            original.goal_id != goal.id
+            or original.amount_cents <= 0
+            or original.reverses_id is not None
+        ):
+            raise BusinessRuleViolation(
+                "Esta alocação não pode ser revertida.", code="invalid_reversal"
+            )
+        already = self.db.scalar(
+            select(GoalAllocation.id).where(GoalAllocation.reverses_id == original.id)
+        )
         if already:
             raise BusinessRuleViolation("Esta alocação já foi revertida.", code="already_reversed")
         reversal = GoalAllocation(
-            user_id=user_id, goal_id=goal.id, amount_cents=-original.amount_cents,
-            allocation_date=self.clock.today(), note="Reversão de alocação", reverses_id=original.id,
+            user_id=user_id,
+            goal_id=goal.id,
+            amount_cents=-original.amount_cents,
+            allocation_date=self.clock.today(),
+            note="Reversão de alocação",
+            reverses_id=original.id,
         )
         self.db.add(reversal)
         self.db.flush()
         self._refresh_status(goal)
         self.audit.record(
-            "goal.allocation_reversed", user_id=user_id, entity_type="goal", entity_id=goal.id,
+            "goal.allocation_reversed",
+            user_id=user_id,
+            entity_type="goal",
+            entity_id=goal.id,
             changes={"allocation_id": str(original.id), "amount_cents": original.amount_cents},
         )
         self.db.commit()
         return reversal
 
-    def is_reversed(self, allocation_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+    def is_reversed(self, allocation_ids: builtins.list[uuid.UUID]) -> set[uuid.UUID]:
         if not allocation_ids:
             return set()
         return set(
-            self.db.scalars(select(GoalAllocation.reverses_id).where(GoalAllocation.reverses_id.in_(allocation_ids)))
+            self.db.scalars(
+                select(GoalAllocation.reverses_id).where(
+                    GoalAllocation.reverses_id.in_(allocation_ids)
+                )
+            )
         )
 
     def _refresh_status(self, goal: Goal) -> None:
@@ -296,4 +373,3 @@ class GoalService:
             return
         allocated = self._allocated([goal.id]).get(goal.id, 0)
         goal.status = GoalStatus.COMPLETED if allocated >= goal.target_cents else GoalStatus.ACTIVE
-

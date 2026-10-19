@@ -42,7 +42,9 @@ def dashboard(request: Request, session: VerifiedSession, svc: Svc) -> Response:
         account_id = None
     if category_id and category_id not in {c.id for c in categories}:
         category_id = None
-    data = svc.dashboard.build(user_id, month, Scope(account_id=account_id, category_id=category_id))
+    data = svc.dashboard.build(
+        user_id, month, Scope(account_id=account_id, category_id=category_id)
+    )
     context = {
         "d": data,
         "accounts": accounts,
@@ -79,7 +81,14 @@ def forecast(request: Request, session: VerifiedSession, svc: Svc) -> Response:
         "type": "line",
         "legend": False,
         "labels": [d.strftime("%d/%m") for d, _ in points],
-        "datasets": [{"label": "Saldo projetado", "data": [b for _, b in points], "color": "primary", "pointRadius": 0}],
+        "datasets": [
+            {
+                "label": "Saldo projetado",
+                "data": [b for _, b in points],
+                "color": "primary",
+                "pointRadius": 0,
+            }
+        ],
     }
     table = {
         "headers": ["Data", "Saldo projetado"],

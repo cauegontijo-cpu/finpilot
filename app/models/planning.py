@@ -42,7 +42,9 @@ class Budget(TimestampMixin, Base):
         CheckConstraint("year BETWEEN 2000 AND 2100", name="year_range"),
         CheckConstraint(f"limit_cents > 0 AND limit_cents <= {MAX_CENTS}", name="limit_positive"),
         ForeignKeyConstraint(
-            ["category_id", "user_id"], ["categories.id", "categories.user_id"], name="fk_budgets_category"
+            ["category_id", "user_id"],
+            ["categories.id", "categories.user_id"],
+            name="fk_budgets_category",
         ),
         Index("ix_budgets_user_period", "user_id", "year", "month"),
     )
@@ -76,7 +78,9 @@ GOAL_STATUS_LABELS = {
 class Goal(TimestampMixin, Base):
     __tablename__ = "goals"
     __table_args__ = (
-        CheckConstraint(f"target_cents > 0 AND target_cents <= {MAX_CENTS}", name="target_positive"),
+        CheckConstraint(
+            f"target_cents > 0 AND target_cents <= {MAX_CENTS}", name="target_positive"
+        ),
         CheckConstraint("length(name) BETWEEN 1 AND 80", name="name_length"),
     )
 
@@ -131,12 +135,16 @@ RECURRENCE_STATUS_LABELS = {
 class RecurrenceRule(TimestampMixin, Base):
     __tablename__ = "recurrence_rules"
     __table_args__ = (
-        CheckConstraint(f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"),
+        CheckConstraint(
+            f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"
+        ),
         CheckConstraint("interval BETWEEN 1 AND 365", name="interval_range"),
         CheckConstraint("end_date IS NULL OR end_date >= start_date", name="end_after_start"),
         CheckConstraint("type IN ('income','expense')", name="type_allowed"),
         ForeignKeyConstraint(
-            ["account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_recurrences_account"
+            ["account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_recurrences_account",
         ),
         ForeignKeyConstraint(
             ["category_id", "user_id"],
@@ -157,7 +165,9 @@ class RecurrenceRule(TimestampMixin, Base):
     interval: Mapped[int] = mapped_column(SmallInteger, server_default="1")
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
-    status: Mapped[RecurrenceStatus] = mapped_column(str_enum(RecurrenceStatus, "recurrence_status"))
+    status: Mapped[RecurrenceStatus] = mapped_column(
+        str_enum(RecurrenceStatus, "recurrence_status")
+    )
     auto_settle: Mapped[bool] = mapped_column(server_default="false")
     generated_until: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)

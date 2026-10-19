@@ -62,7 +62,9 @@ class RequestContextMiddleware:
         cookies = SimpleCookie()
         cookies.load(headers.get(b"cookie", b"").decode("latin-1"))
         anon = cookies.get(ANON_COOKIE)
-        anon_value = anon.value if anon and re.fullmatch(r"[A-Za-z0-9_-]{20,64}", anon.value) else None
+        anon_value = (
+            anon.value if anon and re.fullmatch(r"[A-Za-z0-9_-]{20,64}", anon.value) else None
+        )
         new_anon = anon_value is None
         state = scope.setdefault("state", {})
         state["request_id"] = request_id

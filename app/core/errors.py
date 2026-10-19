@@ -52,7 +52,8 @@ class ConflictError(AppError):
 class IdempotencyConflict(ConflictError):
     def __init__(self) -> None:
         super().__init__(
-            "Esta chave de idempotência já foi usada com dados diferentes.", code="idempotency_conflict"
+            "Esta chave de idempotência já foi usada com dados diferentes.",
+            code="idempotency_conflict",
         )
 
 
@@ -79,7 +80,9 @@ class PermissionDenied(AppError):
 
 class CsrfError(PermissionDenied):
     def __init__(self) -> None:
-        super().__init__("Falha na verificação de segurança (CSRF). Recarregue a página.", code="csrf")
+        super().__init__(
+            "Falha na verificação de segurança (CSRF). Recarregue a página.", code="csrf"
+        )
 
 
 class RateLimited(AppError):
@@ -106,3 +109,10 @@ class InvalidCredentials(AppError):
 
     def __init__(self) -> None:
         super().__init__("E-mail ou senha inválidos.", code="invalid_credentials")
+
+
+def expect[T](value: T | None, message: str = "estado inconsistente") -> T:
+    """Invariante interna (não depende de `assert`, que some com `python -O`)."""
+    if value is None:
+        raise RuntimeError(message)
+    return value

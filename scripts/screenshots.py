@@ -49,7 +49,9 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         viewport = {"width": 390, "height": 844} if args.mobile else {"width": 1440, "height": 900}
-        context = browser.new_context(viewport=viewport, device_scale_factor=2 if args.mobile else 1, locale="pt-BR")
+        context = browser.new_context(
+            viewport=viewport, device_scale_factor=2 if args.mobile else 1, locale="pt-BR"
+        )
         context.add_cookies([{"name": "fp_theme", "value": args.theme, "url": args.base_url}])
         page = context.new_page()
         errors: list[str] = []
@@ -70,7 +72,9 @@ def main() -> None:
                 continue
             page.wait_for_timeout(700)
             suffix = "-mobile" if args.mobile else ""
-            page.screenshot(path=str(out / f"{name}-{args.theme}{suffix}.png"), full_page=not args.mobile)
+            page.screenshot(
+                path=str(out / f"{name}-{args.theme}{suffix}.png"), full_page=not args.mobile
+            )
             print(f"ok {name}")
         browser.close()
     if errors:

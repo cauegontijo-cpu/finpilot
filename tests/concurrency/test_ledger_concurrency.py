@@ -37,7 +37,9 @@ def _balance(maker: sessionmaker[Session], account_id: uuid.UUID) -> int:
         return account.current_balance_cents
 
 
-def test_two_simultaneous_expenses_cannot_overdraw(real_sessions: sessionmaker[Session], setup: dict[str, Any]) -> None:
+def test_two_simultaneous_expenses_cannot_overdraw(
+    real_sessions: sessionmaker[Session], setup: dict[str, Any]
+) -> None:
     def spend() -> Any:
         with real_sessions() as db:
             account = db.get(Account, setup["a"])
@@ -69,11 +71,15 @@ def test_opposite_concurrent_transfers_do_not_deadlock_or_lose_money(
 ) -> None:
     def a_to_b() -> Any:
         with real_sessions() as db:
-            return make_transfer(db, setup["user"], db.get(Account, setup["a"]), db.get(Account, setup["b"]), 100)
+            return make_transfer(
+                db, setup["user"], db.get(Account, setup["a"]), db.get(Account, setup["b"]), 100
+            )
 
     def b_to_a() -> Any:
         with real_sessions() as db:
-            return make_transfer(db, setup["user"], db.get(Account, setup["b"]), db.get(Account, setup["a"]), 50)
+            return make_transfer(
+                db, setup["user"], db.get(Account, setup["b"]), db.get(Account, setup["a"]), 50
+            )
 
     results = run_concurrently([a_to_b, b_to_a] * 5)
     assert not [r for r in results if isinstance(r, Exception)]
@@ -89,8 +95,13 @@ def test_duplicate_request_same_idempotency_key_applies_once(
         with real_sessions() as db:
             account = db.get(Account, setup["a"])
             tx = make_tx(
-                db, setup["user"], account, 100, idempotency_key="duplo-clique-0001",  # type: ignore[arg-type]
-                tx_type=TransactionType.EXPENSE, when=date(2026, 10, 1),
+                db,
+                setup["user"],
+                account,
+                100,
+                idempotency_key="duplo-clique-0001",  # type: ignore[arg-type]
+                tx_type=TransactionType.EXPENSE,
+                when=date(2026, 10, 1),
             )
             return tx.id
 
@@ -98,6 +109,10 @@ def test_duplicate_request_same_idempotency_key_applies_once(
     assert not [r for r in results if isinstance(r, Exception)], results
     assert len(set(results)) == 1
     with real_sessions() as db:
-        count = db.scalar(select(func.count()).select_from(Transaction).where(Transaction.user_id == setup["user"].id))
+        count = db.scalar(
+            select(func.count())
+            .select_from(Transaction)
+            .where(Transaction.user_id == setup["user"].id)
+        )
     assert count == 1
     assert _balance(real_sessions, setup["a"]) == 900

@@ -59,7 +59,8 @@ class Account(TimestampMixin, Base):
             postgresql_where=text("archived_at IS NULL"),
         ),
         CheckConstraint(
-            f"initial_balance_cents BETWEEN -{MAX_CENTS} AND {MAX_CENTS}", name="initial_balance_range"
+            f"initial_balance_cents BETWEEN -{MAX_CENTS} AND {MAX_CENTS}",
+            name="initial_balance_range",
         ),
         CheckConstraint("length(name) BETWEEN 1 AND 60", name="name_length"),
     )
@@ -115,12 +116,18 @@ class Transfer(TimestampMixin, Base):
     __table_args__ = (
         UniqueConstraint("id", "user_id", name="uq_transfers_id_user"),
         CheckConstraint("from_account_id <> to_account_id", name="distinct_accounts"),
-        CheckConstraint(f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"),
-        ForeignKeyConstraint(
-            ["from_account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_transfers_from"
+        CheckConstraint(
+            f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"
         ),
         ForeignKeyConstraint(
-            ["to_account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_transfers_to"
+            ["from_account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_transfers_from",
+        ),
+        ForeignKeyConstraint(
+            ["to_account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_transfers_to",
         ),
         Index("ix_transfers_user_date", "user_id", "transfer_date"),
     )
@@ -132,7 +139,9 @@ class Transfer(TimestampMixin, Base):
     amount_cents: Mapped[int]
     transfer_date: Mapped[date] = mapped_column(Date)
     description: Mapped[str | None] = mapped_column(String(140))
-    status: Mapped[TransactionStatus] = mapped_column(str_enum(TransactionStatus, "transfer_status"))
+    status: Mapped[TransactionStatus] = mapped_column(
+        str_enum(TransactionStatus, "transfer_status")
+    )
     cancelled_at: Mapped[datetime | None]
 
     from_account: Mapped[Account] = relationship(
@@ -148,19 +157,26 @@ class Transfer(TimestampMixin, Base):
 class Transaction(TimestampMixin, Base):
     __tablename__ = "transactions"
     __table_args__ = (
-        CheckConstraint(f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"),
+        CheckConstraint(
+            f"amount_cents > 0 AND amount_cents <= {MAX_CENTS}", name="amount_positive"
+        ),
         CheckConstraint(
             "(type IN ('income','expense')) = (category_id IS NOT NULL)", name="category_by_type"
         ),
         CheckConstraint(
-            "(type IN ('transfer_in','transfer_out')) = (transfer_id IS NOT NULL)", name="transfer_by_type"
+            "(type IN ('transfer_in','transfer_out')) = (transfer_id IS NOT NULL)",
+            name="transfer_by_type",
         ),
-        CheckConstraint("status <> 'settled' OR settlement_date IS NOT NULL", name="settled_has_date"),
+        CheckConstraint(
+            "status <> 'settled' OR settlement_date IS NOT NULL", name="settled_has_date"
+        ),
         CheckConstraint(
             "(recurrence_id IS NULL) = (occurrence_date IS NULL)", name="recurrence_occurrence"
         ),
         ForeignKeyConstraint(
-            ["account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_transactions_account"
+            ["account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_transactions_account",
         ),
         ForeignKeyConstraint(
             ["category_id", "user_id"],
@@ -168,7 +184,9 @@ class Transaction(TimestampMixin, Base):
             name="fk_transactions_category",
         ),
         ForeignKeyConstraint(
-            ["transfer_id", "user_id"], ["transfers.id", "transfers.user_id"], name="fk_transactions_transfer"
+            ["transfer_id", "user_id"],
+            ["transfers.id", "transfers.user_id"],
+            name="fk_transactions_transfer",
         ),
         Index("ix_transactions_user_competence", "user_id", "competence_date"),
         Index("ix_transactions_user_settlement", "user_id", "settlement_date"),
@@ -202,8 +220,12 @@ class Transaction(TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = user_fk()
     account_id: Mapped[uuid.UUID]
     type: Mapped[TransactionType] = mapped_column(str_enum(TransactionType, "transaction_type"))
-    status: Mapped[TransactionStatus] = mapped_column(str_enum(TransactionStatus, "transaction_status"))
-    origin: Mapped[TransactionOrigin] = mapped_column(str_enum(TransactionOrigin, "transaction_origin"))
+    status: Mapped[TransactionStatus] = mapped_column(
+        str_enum(TransactionStatus, "transaction_status")
+    )
+    origin: Mapped[TransactionOrigin] = mapped_column(
+        str_enum(TransactionOrigin, "transaction_origin")
+    )
     description: Mapped[str] = mapped_column(String(140))
     amount_cents: Mapped[int]
     category_id: Mapped[uuid.UUID | None]

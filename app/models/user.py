@@ -66,7 +66,9 @@ class EmailToken(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     user_id: Mapped[uuid.UUID] = user_fk()
-    purpose: Mapped[EmailTokenPurpose] = mapped_column(str_enum(EmailTokenPurpose, "email_token_purpose"))
+    purpose: Mapped[EmailTokenPurpose] = mapped_column(
+        str_enum(EmailTokenPurpose, "email_token_purpose")
+    )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     new_email: Mapped[str | None] = mapped_column(String(254))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

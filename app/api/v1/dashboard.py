@@ -94,7 +94,9 @@ def dashboard(
         svc.accounts.get(session.user.id, account_id)  # 404 se não for do usuário
     if category_id:
         svc.categories.get(session.user.id, category_id)
-    d = svc.dashboard.build(session.user.id, Month(year, month), Scope(account_id=account_id, category_id=category_id))
+    d = svc.dashboard.build(
+        session.user.id, Month(year, month), Scope(account_id=account_id, category_id=category_id)
+    )
     first_negative = d.forecast.first_negative
     return DashboardOut(
         month=d.month.iso(),

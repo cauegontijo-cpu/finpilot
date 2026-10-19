@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from typing import Any, Protocol, TypeVar
+from typing import Any, Protocol
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
@@ -19,9 +19,6 @@ from app.core.errors import NotFoundError, ValidationFailed
 class Owned(Protocol):
     id: Any
     user_id: Any
-
-
-T = TypeVar("T")
 
 
 def parse_uuid(value: str | uuid.UUID | None) -> uuid.UUID | None:
@@ -35,15 +32,15 @@ def parse_uuid(value: str | uuid.UUID | None) -> uuid.UUID | None:
         return None
 
 
-def get_owned(
+def get_owned[M](
     db: Session,
-    model: type[T],
+    model: type[M],
     obj_id: str | uuid.UUID | None,
     user_id: uuid.UUID,
     *,
     for_update: bool = False,
     message: str = "Recurso não encontrado.",
-) -> T:
+) -> M:
     parsed = parse_uuid(obj_id)
     if parsed is None:
         raise NotFoundError(message)

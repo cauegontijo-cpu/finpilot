@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -21,7 +21,7 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
-    type_annotation_map = {
+    type_annotation_map: ClassVar[dict[Any, Any]] = {
         datetime: DateTime(timezone=True),
         int: BigInteger,
     }

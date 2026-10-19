@@ -108,8 +108,12 @@ class BudgetService:
         rows = self.db.execute(
             select(
                 Transaction.category_id,
-                func.sum(case((Transaction.status == "settled", Transaction.amount_cents), else_=0)),
-                func.sum(case((Transaction.status == "planned", Transaction.amount_cents), else_=0)),
+                func.sum(
+                    case((Transaction.status == "settled", Transaction.amount_cents), else_=0)
+                ),
+                func.sum(
+                    case((Transaction.status == "planned", Transaction.amount_cents), else_=0)
+                ),
             )
             .where(
                 Transaction.user_id == user_id,
@@ -173,15 +177,31 @@ class BudgetService:
         return BudgetOverview(month=month, items=items)
 
     # ---------------------------------------------------------------- escrita
-    def _validate(self, user_id: uuid.UUID, category_id: str | uuid.UUID | None, limit_cents: int) -> uuid.UUID:
+    def _validate(
+        self, user_id: uuid.UUID, category_id: str | uuid.UUID | None, limit_cents: int
+    ) -> uuid.UUID:
         if limit_cents <= 0 or limit_cents > MAX_CENTS:
-            raise ValidationFailed("Informe um limite positivo.", field_errors={"limit": "Valor inválido"})
+            raise ValidationFailed(
+                "Informe um limite positivo.", field_errors={"limit": "Valor inválido"}
+            )
         category = self.categories.require_for_type(user_id, category_id, CategoryKind.EXPENSE)
         return category.id
 
-    def create(self, user_id: uuid.UUID, category_id: str | uuid.UUID | None, month: Month, limit_cents: int) -> Budget:
+    def create(
+        self,
+        user_id: uuid.UUID,
+        category_id: str | uuid.UUID | None,
+        month: Month,
+        limit_cents: int,
+    ) -> Budget:
         cat_id = self._validate(user_id, category_id, limit_cents)  # RN029
-        budget = Budget(user_id=user_id, category_id=cat_id, year=month.year, month=month.month, limit_cents=limit_cents)
+        budget = Budget(
+            user_id=user_id,
+            category_id=cat_id,
+            year=month.year,
+            month=month.month,
+            limit_cents=limit_cents,
+        )
         self.db.add(budget)
         self._flush_unique()
         self.audit.record(
@@ -189,7 +209,11 @@ class BudgetService:
             user_id=user_id,
             entity_type="budget",
             entity_id=budget.id,
-            changes={"category_id": str(cat_id), "competencia": month.iso(), "limit_cents": limit_cents},
+            changes={
+                "category_id": str(cat_id),
+                "competencia": month.iso(),
+                "limit_cents": limit_cents,
+            },
         )
         self.db.commit()
         return budget
@@ -212,7 +236,9 @@ class BudgetService:
     def archive(self, user_id: uuid.UUID, budget_id: str) -> None:
         budget = self.get(user_id, budget_id)
         budget.archived_at = self.clock.now()
-        self.audit.record("budget.archived", user_id=user_id, entity_type="budget", entity_id=budget.id)
+        self.audit.record(
+            "budget.archived", user_id=user_id, entity_type="budget", entity_id=budget.id
+        )
         self.db.commit()
 
     def copy_from_previous(self, user_id: uuid.UUID, month: Month) -> int:
@@ -236,7 +262,10 @@ class BudgetService:
         if created:
             self._flush_unique()
             self.audit.record(
-                "budget.copied", user_id=user_id, entity_type="budget", changes={"competencia": month.iso(), "quantidade": created}
+                "budget.copied",
+                user_id=user_id,
+                entity_type="budget",
+                changes={"competencia": month.iso(), "quantidade": created},
             )
             self.db.commit()
         return created

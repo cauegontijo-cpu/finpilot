@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import csv
 import io
-from xml.sax.saxutils import escape
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
@@ -50,13 +50,28 @@ def to_csv(result: ReportResult, issued_at: datetime) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=";", quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
     writer.writerow([neutralize_formula(f"{result.title} — {result.period_label}")])
-    writer.writerow([neutralize_formula(f"Critério: {result.regime}"), f"Emitido em {issued_at.astimezone(APP_TZ):%d/%m/%Y %H:%M}"])
+    writer.writerow(
+        [
+            neutralize_formula(f"Critério: {result.regime}"),
+            f"Emitido em {issued_at.astimezone(APP_TZ):%d/%m/%Y %H:%M}",
+        ]
+    )
     writer.writerow([])
     writer.writerow([neutralize_formula(c.label) for c in result.columns])
     for row in result.rows:
-        writer.writerow([neutralize_formula(format_cell(v, c, for_csv=True)) for v, c in zip(row, result.columns, strict=False)])
+        writer.writerow(
+            [
+                neutralize_formula(format_cell(v, c, for_csv=True))
+                for v, c in zip(row, result.columns, strict=False)
+            ]
+        )
     if result.totals:
-        writer.writerow([neutralize_formula(format_cell(v, c, for_csv=True)) for v, c in zip(result.totals, result.columns, strict=False)])
+        writer.writerow(
+            [
+                neutralize_formula(format_cell(v, c, for_csv=True))
+                for v, c in zip(result.totals, result.columns, strict=False)
+            ]
+        )
     return ("﻿" + buffer.getvalue()).encode("utf-8")
 
 
@@ -65,8 +80,14 @@ def to_pdf(result: ReportResult, issued_at: datetime, user_name: str) -> bytes:
     wide = len(result.columns) > 5
     pagesize = landscape(A4) if wide else A4
     doc = SimpleDocTemplate(
-        buffer, pagesize=pagesize, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=24 * mm, bottomMargin=18 * mm,
-        title=result.title, author="FinPilot",
+        buffer,
+        pagesize=pagesize,
+        leftMargin=14 * mm,
+        rightMargin=14 * mm,
+        topMargin=24 * mm,
+        bottomMargin=18 * mm,
+        title=result.title,
+        author="FinPilot",
     )
     styles = getSampleStyleSheet()
     cell = ParagraphStyle("cell", parent=styles["BodyText"], fontSize=8, leading=10)
@@ -84,16 +105,30 @@ def to_pdf(result: ReportResult, issued_at: datetime, user_name: str) -> bytes:
         canvas.setFont("Helvetica", 8)
         canvas.drawRightString(width - 14 * mm, height - 10 * mm, f"Período: {result.period_label}")
         canvas.setFillColor(colors.HexColor("#5b6b82"))
-        canvas.drawString(14 * mm, 10 * mm, f"Critério contábil: {result.regime} · Emitido em {issued} (America/Sao_Paulo) para {user_name}")
+        canvas.drawString(
+            14 * mm,
+            10 * mm,
+            f"Critério contábil: {result.regime} · Emitido em {issued} (America/Sao_Paulo) para {user_name}",
+        )
         canvas.drawRightString(width - 14 * mm, 10 * mm, f"Página {document.page}")
         canvas.restoreState()
 
     data = [[Paragraph(escape(c.label), head) for c in result.columns]]
     for row in result.rows:
         # Conteúdo do usuário é escapado: o Paragraph do ReportLab interpreta marcação.
-        data.append([Paragraph(escape(format_cell(v, c)), cell) for v, c in zip(row, result.columns, strict=False)])
+        data.append(
+            [
+                Paragraph(escape(format_cell(v, c)), cell)
+                for v, c in zip(row, result.columns, strict=False)
+            ]
+        )
     if result.totals:
-        data.append([Paragraph(f"<b>{escape(format_cell(v, c))}</b>", cell) for v, c in zip(result.totals, result.columns, strict=False)])
+        data.append(
+            [
+                Paragraph(f"<b>{escape(format_cell(v, c))}</b>", cell)
+                for v, c in zip(result.totals, result.columns, strict=False)
+            ]
+        )
     if len(data) == 1:
         data.append([Paragraph("Sem dados no período.", cell)] + [""] * (len(result.columns) - 1))
 
@@ -112,7 +147,10 @@ def to_pdf(result: ReportResult, issued_at: datetime, user_name: str) -> bytes:
     table.setStyle(TableStyle(style))
     story: list[Any] = [
         Paragraph(f"<b>{escape(result.title)}</b>", styles["Heading2"]),
-        Paragraph(escape(f"Período: {result.period_label} · Critério: {result.regime}"), styles["BodyText"]),
+        Paragraph(
+            escape(f"Período: {result.period_label} · Critério: {result.regime}"),
+            styles["BodyText"],
+        ),
         Spacer(1, 4 * mm),
         table,
     ]

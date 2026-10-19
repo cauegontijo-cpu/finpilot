@@ -21,7 +21,7 @@ def test_change_password_requires_current_and_revokes_other_sessions(
     client: TestClient, user: Any, db: Session
 ) -> None:
     other = TestClient(app, base_url="http://testserver")
-    from app.core.database import get_db  # noqa: PLC0415
+    from app.core.database import get_db
 
     assert get_db in app.dependency_overrides
     login(other, user.email)
@@ -30,26 +30,40 @@ def test_change_password_requires_current_and_revokes_other_sessions(
     wrong = post_form(
         client,
         "/app/configuracoes/senha",
-        {"current_password": "errada-errada", "password": "Nova-Senha-123-ab", "password_confirm": "Nova-Senha-123-ab"},
+        {
+            "current_password": "errada-errada",
+            "password": "Nova-Senha-123-ab",
+            "password_confirm": "Nova-Senha-123-ab",
+        },
     )
     assert wrong.status_code == 422
     ok = post_form(
         client,
         "/app/configuracoes/senha",
-        {"current_password": TEST_PASSWORD, "password": "Nova-Senha-123-ab", "password_confirm": "Nova-Senha-123-ab"},
+        {
+            "current_password": TEST_PASSWORD,
+            "password": "Nova-Senha-123-ab",
+            "password_confirm": "Nova-Senha-123-ab",
+        },
     )
     assert ok.status_code == 303
     active = db.scalar(
-        select(func.count()).select_from(UserSession).where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
+        select(func.count())
+        .select_from(UserSession)
+        .where(UserSession.user_id == user.id, UserSession.revoked_at.is_(None))
     )
     assert active == 1
     assert other.get("/app/configuracoes", follow_redirects=False).status_code == 303
     assert client.get("/app/configuracoes", follow_redirects=False).status_code == 200
 
 
-def test_change_email_requires_confirmation_on_new_address(auth_client: TestClient, user: Any, db: Session) -> None:
+def test_change_email_requires_confirmation_on_new_address(
+    auth_client: TestClient, user: Any, db: Session
+) -> None:
     response = post_form(
-        auth_client, "/app/configuracoes/email", {"email": "ana.nova@example.com", "password": TEST_PASSWORD}
+        auth_client,
+        "/app/configuracoes/email",
+        {"email": "ana.nova@example.com", "password": TEST_PASSWORD},
     )
     assert response.status_code == 303
     db.refresh(user)
@@ -66,7 +80,11 @@ def test_change_email_requires_confirmation_on_new_address(auth_client: TestClie
 def test_change_email_to_existing_address_fails_at_confirmation(
     auth_client: TestClient, user: Any, other_user: Any, db: Session
 ) -> None:
-    post_form(auth_client, "/app/configuracoes/email", {"email": other_user.email, "password": TEST_PASSWORD})
+    post_form(
+        auth_client,
+        "/app/configuracoes/email",
+        {"email": other_user.email, "password": TEST_PASSWORD},
+    )
     confirm = next(m for m in app.state.mailer.outbox if m.to == other_user.email)
     token = extract_token(confirm.text, "/confirmar-email")
     assert post_form(auth_client, "/confirmar-email", {"token": token}).status_code == 400
@@ -74,7 +92,9 @@ def test_change_email_to_existing_address_fails_at_confirmation(
     assert user.email == "ana@example.com"
 
 
-def test_export_contains_own_data_without_secrets(auth_client: TestClient, user: Any, other_user: Any) -> None:
+def test_export_contains_own_data_without_secrets(
+    auth_client: TestClient, user: Any, other_user: Any
+) -> None:
     response = post_form(auth_client, "/app/configuracoes/exportar", {})
     assert response.status_code == 200
     assert "attachment" in response.headers["content-disposition"]
@@ -90,18 +110,30 @@ def test_delete_account_requires_password_and_email_and_cascades(
     auth_client: TestClient, user: Any, other_user: Any, db: Session
 ) -> None:
     bad = post_form(
-        auth_client, "/app/configuracoes/excluir-conta", {"password": TEST_PASSWORD, "email_confirmation": "outro@x.com"}
+        auth_client,
+        "/app/configuracoes/excluir-conta",
+        {"password": TEST_PASSWORD, "email_confirmation": "outro@x.com"},
     )
     assert bad.status_code == 422
     ok = post_form(
-        auth_client, "/app/configuracoes/excluir-conta", {"password": TEST_PASSWORD, "email_confirmation": user.email}
+        auth_client,
+        "/app/configuracoes/excluir-conta",
+        {"password": TEST_PASSWORD, "email_confirmation": user.email},
     )
     assert ok.status_code == 303
     user_id = user.id
     db.expire_all()
     assert db.get(User, user_id) is None
-    assert db.scalar(select(func.count()).select_from(Category).where(Category.user_id == user_id)) == 0
-    assert db.scalar(select(func.count()).select_from(Category).where(Category.user_id == other_user.id)) == 14
+    assert (
+        db.scalar(select(func.count()).select_from(Category).where(Category.user_id == user_id))
+        == 0
+    )
+    assert (
+        db.scalar(
+            select(func.count()).select_from(Category).where(Category.user_id == other_user.id)
+        )
+        == 14
+    )
     # Auditoria permanece pseudonimizada (sem e-mail/nome)
     logs = db.scalars(select(AuditLog).where(AuditLog.user_id == user_id)).all()
     assert any(log.event_type == "user.deleted" for log in logs)

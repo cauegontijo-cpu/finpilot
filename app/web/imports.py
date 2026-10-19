@@ -21,7 +21,9 @@ router = APIRouter(prefix="/app/importacoes", include_in_schema=False)
 write_guard = [Depends(financial_rate_limit)]
 
 
-def _index(request: Request, svc: Svc, user_id: Any, error: str | None = None, status_code: int = 200) -> Response:
+def _index(
+    request: Request, svc: Svc, user_id: Any, error: str | None = None, status_code: int = 200
+) -> Response:
     return page(
         request,
         "pages/imports/index.html",
@@ -42,7 +44,9 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
 
 
 @router.post("", dependencies=write_guard)
-async def upload(request: Request, session: VerifiedSession, svc: Svc, limiter: Limiter) -> Response:
+async def upload(
+    request: Request, session: VerifiedSession, svc: Svc, limiter: Limiter
+) -> Response:
     limiter.hit(ratelimit.UPLOAD, str(session.user.id))
     form = await request.form(max_files=1, max_fields=10)
     file = form.get("file")
@@ -52,10 +56,16 @@ async def upload(request: Request, session: VerifiedSession, svc: Svc, limiter: 
     content = await file.read(svc.settings.import_max_bytes + 1)
     await file.close()
     try:
-        batch = svc.imports.upload(session.user.id, FormReader(form).raw("account_id") or None, file.filename, content)
+        batch = svc.imports.upload(
+            session.user.id, FormReader(form).raw("account_id") or None, file.filename, content
+        )
     except AppError as exc:
         return _index(request, svc, session.user.id, exc.detail, exc.status_code)
-    return redirect(request, f"/app/importacoes/{batch.id}", message="Arquivo recebido. Confira o mapeamento das colunas.")
+    return redirect(
+        request,
+        f"/app/importacoes/{batch.id}",
+        message="Arquivo recebido. Confira o mapeamento das colunas.",
+    )
 
 
 @router.get("/{batch_id}")
@@ -75,7 +85,9 @@ def detail(request: Request, batch_id: str, session: VerifiedSession, svc: Svc) 
         "income_categories": [c for c in categories if c.kind is CategoryKind.INCOME],
         "expense_categories": [c for c in categories if c.kind is CategoryKind.EXPENSE],
         "previous": svc.imports.previous_import_of_same_file(batch),
-        "ambiguous": svc.imports.date_ambiguity(batch, int(mapping["date_col"])) if "date_col" in mapping else False,
+        "ambiguous": svc.imports.date_ambiguity(batch, int(mapping["date_col"]))
+        if "date_col" in mapping
+        else False,
     }
     if batch.status in (ImportStatus.MAPPED, ImportStatus.CONFIRMED):
         context["stats"] = svc.imports.stats(batch)
@@ -100,7 +112,9 @@ def _col(reader: FormReader, name: str, optional: bool = False) -> int | None:
 
 
 @router.post("/{batch_id}/mapeamento", dependencies=write_guard)
-async def apply_mapping(request: Request, batch_id: str, session: VerifiedSession, svc: Svc) -> Response:
+async def apply_mapping(
+    request: Request, batch_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     form = await request.form()
     reader = FormReader(form)
     try:
@@ -132,7 +146,12 @@ async def confirm(request: Request, batch_id: str, session: VerifiedSession, svc
     form = await request.form()
     selected = [v for v in form.getlist("rows") if isinstance(v, str)]
     try:
-        report = svc.imports.confirm(session.user.id, batch_id, selected, idempotency_key=FormReader(form).raw("idempotency_key"))
+        report = svc.imports.confirm(
+            session.user.id,
+            batch_id,
+            selected,
+            idempotency_key=FormReader(form).raw("idempotency_key"),
+        )
     except AppError as exc:
         return _fail(request, exc, f"/app/importacoes/{batch_id}")
     return redirect(
@@ -149,4 +168,6 @@ def discard(request: Request, batch_id: str, session: VerifiedSession, svc: Svc)
         svc.imports.discard(session.user.id, batch_id)
     except AppError as exc:
         return _fail(request, exc, f"/app/importacoes/{batch_id}")
-    return redirect(request, "/app/importacoes", message="Importação descartada. Nenhum lançamento foi criado.")
+    return redirect(
+        request, "/app/importacoes", message="Importação descartada. Nenhum lançamento foi criado."
+    )

@@ -29,7 +29,12 @@ def cards(svc: Svc) -> CardService:
     return CardService(svc.db, svc.clock, svc.audit)
 
 
-def _card_ctx(card: CreditCard | None, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
+def _card_ctx(
+    card: CreditCard | None,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
     return {"card": card, "values": values, "errors": errors, "error": error, "palette": PALETTE}
 
 
@@ -50,12 +55,18 @@ def _read_card(form: Any) -> CardInput:
 
 @router.get("/cartoes")
 def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
-    return page(request, "pages/cards/index.html", {"summaries": cards(svc).summaries(session.user.id), "today": svc.clock.today()})
+    return page(
+        request,
+        "pages/cards/index.html",
+        {"summaries": cards(svc).summaries(session.user.id), "today": svc.clock.today()},
+    )
 
 
 @router.get("/cartoes/novo")
 def new(request: Request, session: VerifiedSession) -> Response:
-    return form_view(request, CARD_FORM, _card_ctx(None, {"color": "#0b1b3f"}, {}), title="Novo cartão")
+    return form_view(
+        request, CARD_FORM, _card_ctx(None, {"color": "#0b1b3f"}, {}), title="Novo cartão"
+    )
 
 
 @router.post("/cartoes", dependencies=write_guard)
@@ -64,7 +75,13 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
     try:
         cards(svc).create(session.user.id, _read_card(form))
     except AppError as exc:
-        return form_view(request, CARD_FORM, _card_ctx(None, form_values(form), exc.field_errors, exc.detail), title="Novo cartão", status_code=422)
+        return form_view(
+            request,
+            CARD_FORM,
+            _card_ctx(None, form_values(form), exc.field_errors, exc.detail),
+            title="Novo cartão",
+            status_code=422,
+        )
     return success(request, "Cartão cadastrado.", fallback_url="/app/cartoes")
 
 
@@ -89,8 +106,15 @@ def detail(request: Request, card_id: str, session: VerifiedSession, svc: Svc) -
 @router.get("/cartoes/{card_id}/editar")
 def edit(request: Request, card_id: str, session: VerifiedSession, svc: Svc) -> Response:
     c = cards(svc).get(session.user.id, card_id)
-    values = {"name": c.name, "institution": c.institution or "", "limit": format_input_brl(c.limit_cents),
-              "closing_day": str(c.closing_day), "due_day": str(c.due_day), "last4": c.last4 or "", "color": c.color}
+    values = {
+        "name": c.name,
+        "institution": c.institution or "",
+        "limit": format_input_brl(c.limit_cents),
+        "closing_day": str(c.closing_day),
+        "due_day": str(c.due_day),
+        "last4": c.last4 or "",
+        "color": c.color,
+    }
     return form_view(request, CARD_FORM, _card_ctx(c, values, {}), title="Editar cartão")
 
 
@@ -101,7 +125,13 @@ async def update(request: Request, card_id: str, session: VerifiedSession, svc: 
     try:
         cards(svc).update(session.user.id, card_id, _read_card(form))
     except AppError as exc:
-        return form_view(request, CARD_FORM, _card_ctx(c, form_values(form), exc.field_errors, exc.detail), title="Editar cartão", status_code=422)
+        return form_view(
+            request,
+            CARD_FORM,
+            _card_ctx(c, form_values(form), exc.field_errors, exc.detail),
+            title="Editar cartão",
+            status_code=422,
+        )
     return success(request, "Cartão atualizado.", fallback_url=f"/app/cartoes/{card_id}")
 
 
@@ -115,16 +145,33 @@ def archive(request: Request, card_id: str, session: VerifiedSession, svc: Svc) 
 
 
 # ---------------------------------------------------------------- compras
-def _purchase_ctx(svc: Svc, user_id: Any, card: CreditCard, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
-    return {"card": card, "values": values, "errors": errors, "error": error,
-            "categories": svc.categories.list(user_id, kind=CategoryKind.EXPENSE)}
+def _purchase_ctx(
+    svc: Svc,
+    user_id: Any,
+    card: CreditCard,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "card": card,
+        "values": values,
+        "errors": errors,
+        "error": error,
+        "categories": svc.categories.list(user_id, kind=CategoryKind.EXPENSE),
+    }
 
 
 @router.get("/cartoes/{card_id}/compras/nova")
 def purchase_form(request: Request, card_id: str, session: VerifiedSession, svc: Svc) -> Response:
     card = cards(svc).get(session.user.id, card_id)
     values = {"purchase_date": svc.clock.today().isoformat(), "installments": "1"}
-    return form_view(request, PURCHASE_FORM, _purchase_ctx(svc, session.user.id, card, values, {}), title="Nova compra")
+    return form_view(
+        request,
+        PURCHASE_FORM,
+        _purchase_ctx(svc, session.user.id, card, values, {}),
+        title="Nova compra",
+    )
 
 
 @router.get("/cartoes/{card_id}/compras/simular")
@@ -142,7 +189,9 @@ def simulate(request: Request, card_id: str, session: VerifiedSession, svc: Svc)
 
 
 @router.post("/cartoes/{card_id}/compras", dependencies=write_guard)
-async def purchase_create(request: Request, card_id: str, session: VerifiedSession, svc: Svc) -> Response:
+async def purchase_create(
+    request: Request, card_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     card = cards(svc).get(session.user.id, card_id)
     form = await request.form()
     reader = FormReader(form)
@@ -155,9 +204,13 @@ async def purchase_create(request: Request, card_id: str, session: VerifiedSessi
             installments=reader.integer("installments", 1, min_value=1, max_value=48),
         )
         reader.raise_if_errors()
-        cards(svc).purchase(session.user.id, card_id, data, idempotency_key=reader.raw("idempotency_key"))
+        cards(svc).purchase(
+            session.user.id, card_id, data, idempotency_key=reader.raw("idempotency_key")
+        )
     except AppError as exc:
-        ctx = _purchase_ctx(svc, session.user.id, card, form_values(form), exc.field_errors, exc.detail)
+        ctx = _purchase_ctx(
+            svc, session.user.id, card, form_values(form), exc.field_errors, exc.detail
+        )
         return form_view(request, PURCHASE_FORM, ctx, title="Nova compra", status_code=422)
     return success(request, "Compra registrada.", fallback_url=f"/app/cartoes/{card_id}")
 
@@ -173,7 +226,9 @@ def refund(request: Request, purchase_id: str, session: VerifiedSession, svc: Sv
 
 # ---------------------------------------------------------------- faturas
 @router.get("/faturas/{statement_id}")
-def statement_detail(request: Request, statement_id: str, session: VerifiedSession, svc: Svc) -> Response:
+def statement_detail(
+    request: Request, statement_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     service = cards(svc)
     statement, balance = service.statement(session.user.id, statement_id)
     return page(
@@ -193,8 +248,17 @@ def statement_detail(request: Request, statement_id: str, session: VerifiedSessi
 @router.get("/faturas/{statement_id}/pagar")
 def pay_form(request: Request, statement_id: str, session: VerifiedSession, svc: Svc) -> Response:
     statement, balance = cards(svc).statement(session.user.id, statement_id)
-    values = {"amount": format_input_brl(max(0, balance.remaining_cents)), "payment_date": svc.clock.today().isoformat()}
-    ctx = {"statement": statement, "balance": balance, "values": values, "errors": {}, "accounts": svc.accounts.list(session.user.id)}
+    values = {
+        "amount": format_input_brl(max(0, balance.remaining_cents)),
+        "payment_date": svc.clock.today().isoformat(),
+    }
+    ctx = {
+        "statement": statement,
+        "balance": balance,
+        "values": values,
+        "errors": {},
+        "accounts": svc.accounts.list(session.user.id),
+    }
     return form_view(request, PAY_FORM, ctx, title="Pagar fatura")
 
 
@@ -207,18 +271,37 @@ async def pay(request: Request, statement_id: str, session: VerifiedSession, svc
         amount = reader.money("amount")
         when = reader.required_date("payment_date", svc.clock.today())
         reader.raise_if_errors()
-        cards(svc).pay(session.user.id, statement_id, reader.raw("account_id") or None, amount, when, idempotency_key=reader.raw("idempotency_key"))
+        cards(svc).pay(
+            session.user.id,
+            statement_id,
+            reader.raw("account_id") or None,
+            amount,
+            when,
+            idempotency_key=reader.raw("idempotency_key"),
+        )
     except AppError as exc:
-        ctx = {"statement": statement, "balance": balance, "values": form_values(form), "errors": exc.field_errors,
-               "error": exc.detail, "accounts": svc.accounts.list(session.user.id)}
+        ctx = {
+            "statement": statement,
+            "balance": balance,
+            "values": form_values(form),
+            "errors": exc.field_errors,
+            "error": exc.detail,
+            "accounts": svc.accounts.list(session.user.id),
+        }
         return form_view(request, PAY_FORM, ctx, title="Pagar fatura", status_code=422)
     return success(request, "Pagamento registrado.", fallback_url=f"/app/faturas/{statement_id}")
 
 
 @router.post("/pagamentos/{payment_id}/cancelar", dependencies=write_guard)
-def cancel_payment(request: Request, payment_id: str, session: VerifiedSession, svc: Svc) -> Response:
+def cancel_payment(
+    request: Request, payment_id: str, session: VerifiedSession, svc: Svc
+) -> Response:
     try:
         payment = cards(svc).cancel_payment(session.user.id, payment_id)
     except AppError as exc:
         return failure(request, exc, fallback_url="/app/cartoes")
-    return success(request, "Pagamento cancelado e valor devolvido à conta.", fallback_url=f"/app/faturas/{payment.statement_id}")
+    return success(
+        request,
+        "Pagamento cancelado e valor devolvido à conta.",
+        fallback_url=f"/app/faturas/{payment.statement_id}",
+    )

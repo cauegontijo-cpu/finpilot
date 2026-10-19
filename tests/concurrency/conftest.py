@@ -11,10 +11,27 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 
 TABLES = [
-    "audit_logs", "idempotency_keys", "card_payments", "card_installments", "card_purchases",
-    "card_statements", "credit_cards", "import_rows", "import_batches", "goal_allocations", "goals",
-    "budgets", "transactions", "transfers", "recurrence_rules", "categories", "accounts",
-    "email_tokens", "password_reset_tokens", "user_sessions", "users",
+    "audit_logs",
+    "idempotency_keys",
+    "card_payments",
+    "card_installments",
+    "card_purchases",
+    "card_statements",
+    "credit_cards",
+    "import_rows",
+    "import_batches",
+    "goal_allocations",
+    "goals",
+    "budgets",
+    "transactions",
+    "transfers",
+    "recurrence_rules",
+    "categories",
+    "accounts",
+    "email_tokens",
+    "password_reset_tokens",
+    "user_sessions",
+    "users",
 ]
 
 

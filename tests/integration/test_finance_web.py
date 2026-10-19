@@ -29,7 +29,14 @@ def _account_form(**overrides: Any) -> dict[str, str]:
 
 
 def test_pages_render(auth_client: TestClient) -> None:
-    for url in ["/app/contas", "/app/categorias", "/app/transacoes", "/app/transferencias", "/app/contas/nova", "/app/transacoes/nova"]:
+    for url in [
+        "/app/contas",
+        "/app/categorias",
+        "/app/transacoes",
+        "/app/transferencias",
+        "/app/contas/nova",
+        "/app/transacoes/nova",
+    ]:
         response = auth_client.get(url)
         assert response.status_code == 200, url
         assert "<html" in response.text
@@ -45,13 +52,17 @@ def test_create_account_via_htmx_form(auth_client: TestClient, user: Any, db: Se
 
 
 def test_create_account_invalid_rerenders_form_with_errors(auth_client: TestClient) -> None:
-    response = post_form(auth_client, "/app/contas", _account_form(name="", initial_balance="abc"), headers=HX)
+    response = post_form(
+        auth_client, "/app/contas", _account_form(name="", initial_balance="abc"), headers=HX
+    )
     assert response.status_code == 422
     assert "Valor inválido" in response.text
     assert 'aria-invalid="true"' in response.text
 
 
-def test_create_transaction_via_form_and_list(auth_client: TestClient, user: Any, db: Session) -> None:
+def test_create_transaction_via_form_and_list(
+    auth_client: TestClient, user: Any, db: Session
+) -> None:
     account = make_account(db, user, initial=100_000)
     food = category(db, user, "Alimentação")
     key = uuid.uuid4().hex
@@ -76,11 +87,18 @@ def test_create_transaction_via_form_and_list(auth_client: TestClient, user: Any
     assert "Feira" in listing.text and "R$ 123,45" in listing.text
 
 
-def test_transaction_form_requires_category_and_positive_amount(auth_client: TestClient, user: Any, db: Session) -> None:
+def test_transaction_form_requires_category_and_positive_amount(
+    auth_client: TestClient, user: Any, db: Session
+) -> None:
     account = make_account(db, user)
     data = {
-        "type": "expense", "description": "X", "amount": "0", "account_id": str(account.id),
-        "status": "settled", "competence_date": "2026-10-10", "idempotency_key": uuid.uuid4().hex,
+        "type": "expense",
+        "description": "X",
+        "amount": "0",
+        "account_id": str(account.id),
+        "status": "settled",
+        "competence_date": "2026-10-10",
+        "idempotency_key": uuid.uuid4().hex,
     }
     response = post_form(auth_client, "/app/transacoes", data, headers=HX)
     assert response.status_code == 422
@@ -90,7 +108,10 @@ def test_transaction_form_requires_category_and_positive_amount(auth_client: Tes
 def test_cancel_via_web_reverts_balance(auth_client: TestClient, user: Any, db: Session) -> None:
     account = make_account(db, user, initial=10_000)
     tx = make_tx(db, user, account, 2_000)
-    assert post_form(auth_client, f"/app/transacoes/{tx.id}/cancelar", {}, headers=HX).status_code == 204
+    assert (
+        post_form(auth_client, f"/app/transacoes/{tx.id}/cancelar", {}, headers=HX).status_code
+        == 204
+    )
     db.refresh(account)
     assert account.current_balance_cents == 10_000
     assert db.get(Transaction, tx.id).status is TransactionStatus.CANCELLED
@@ -102,8 +123,12 @@ def test_transfer_via_web(auth_client: TestClient, user: Any, db: Session) -> No
     a = make_account(db, user, name="A", initial=10_000)
     b = make_account(db, user, name="B", initial=0)
     data = {
-        "from_account_id": str(a.id), "to_account_id": str(b.id), "amount": "50,00",
-        "transfer_date": "2026-10-10", "status": "settled", "idempotency_key": uuid.uuid4().hex,
+        "from_account_id": str(a.id),
+        "to_account_id": str(b.id),
+        "amount": "50,00",
+        "transfer_date": "2026-10-10",
+        "status": "settled",
+        "idempotency_key": uuid.uuid4().hex,
     }
     assert post_form(auth_client, "/app/transferencias", data, headers=HX).status_code == 204
     db.refresh(a)
@@ -115,7 +140,9 @@ def test_transfer_via_web(auth_client: TestClient, user: Any, db: Session) -> No
     assert response.status_code == 422 and "diferentes" in response.text
 
 
-def test_business_error_on_simple_action_returns_toast(auth_client: TestClient, user: Any, db: Session) -> None:
+def test_business_error_on_simple_action_returns_toast(
+    auth_client: TestClient, user: Any, db: Session
+) -> None:
     account = make_account(db, user)
     make_tx(db, user, account, 100)
     response = post_form(auth_client, f"/app/contas/{account.id}/excluir", {}, headers=HX)
@@ -125,7 +152,13 @@ def test_business_error_on_simple_action_returns_toast(auth_client: TestClient, 
 
 def test_html_is_escaped_in_listing(auth_client: TestClient, user: Any, db: Session) -> None:
     account = make_account(db, user, initial=100_000, clock=None)
-    make_tx(db, user, account, 100, description='<script>alert("x")</script><img src=x onerror=alert(1)>')
+    make_tx(
+        db,
+        user,
+        account,
+        100,
+        description='<script>alert("x")</script><img src=x onerror=alert(1)>',
+    )
     body = auth_client.get("/app/transacoes?month=2026-10").text
     assert "<script>alert" not in body
     assert "&lt;script&gt;" in body

@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from hypothesis import given
@@ -10,7 +10,9 @@ from app.domain.recurrence import Frequency, nth_occurrence, occurrences_between
 
 def test_monthly_anchor_31_uses_last_valid_day_and_returns_to_31() -> None:
     dates = list(
-        occurrences_between(date(2026, 1, 31), Frequency.MONTHLY, 1, date(2026, 1, 1), date(2026, 6, 30))
+        occurrences_between(
+            date(2026, 1, 31), Frequency.MONTHLY, 1, date(2026, 1, 1), date(2026, 6, 30)
+        )
     )
     assert dates == [
         date(2026, 1, 31),
@@ -53,7 +55,9 @@ def test_window_and_end_date_are_respected() -> None:
 
 def test_window_before_start_yields_nothing() -> None:
     assert not list(
-        occurrences_between(date(2026, 5, 1), Frequency.DAILY, 1, date(2026, 1, 1), date(2026, 4, 30))
+        occurrences_between(
+            date(2026, 5, 1), Frequency.DAILY, 1, date(2026, 1, 1), date(2026, 4, 30)
+        )
     )
 
 
@@ -83,10 +87,10 @@ def test_window_iteration_matches_index_formula(
 
 def test_local_date_uses_sao_paulo_timezone() -> None:
     # 01/03/2026 01:30 UTC ainda é 28/02/2026 em São Paulo (UTC-3).
-    moment = datetime(2026, 3, 1, 1, 30, tzinfo=timezone.utc)
+    moment = datetime(2026, 3, 1, 1, 30, tzinfo=UTC)
     assert local_date(moment) == date(2026, 2, 28)
     with pytest.raises(ValueError, match="fuso"):
-        local_date(datetime(2026, 3, 1, 1, 30))  # noqa: DTZ001
+        local_date(datetime(2026, 3, 1, 1, 30))
 
 
 def test_month_helpers() -> None:

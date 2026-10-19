@@ -18,9 +18,10 @@ SENSITIVE_KEYS = re.compile(
 )
 REDACTED = "[REDACTED]"
 
-_STANDARD_ATTRS = set(
-    logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()
-) | {"message", "asctime"}
+_STANDARD_ATTRS = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()) | {
+    "message",
+    "asctime",
+}
 
 
 def redact(value: Any) -> Any:

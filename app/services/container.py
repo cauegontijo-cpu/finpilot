@@ -72,7 +72,9 @@ class Services:
 
     @cached_property
     def recurrences(self) -> RecurrenceService:
-        return RecurrenceService(self.db, self.clock, self.audit, self.settings.recurrence_horizon_days)
+        return RecurrenceService(
+            self.db, self.clock, self.audit, self.settings.recurrence_horizon_days
+        )
 
     @cached_property
     def imports(self) -> ImportService:

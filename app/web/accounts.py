@@ -21,7 +21,12 @@ router = APIRouter(prefix="/app/contas", include_in_schema=False)
 write_guard = [Depends(financial_rate_limit)]
 
 
-def _form_context(account: Account | None, values: dict[str, Any], errors: dict[str, str], error: str | None = None) -> dict[str, Any]:
+def _form_context(
+    account: Account | None,
+    values: dict[str, Any],
+    errors: dict[str, str],
+    error: str | None = None,
+) -> dict[str, Any]:
     return {
         "account": account,
         "values": values,
@@ -66,8 +71,15 @@ def index(request: Request, session: VerifiedSession, svc: Svc) -> Response:
 
 @router.get("/nova")
 def new(request: Request, session: VerifiedSession, svc: Svc) -> Response:
-    values = {"start_date": svc.clock.today().isoformat(), "type": "checking", "color": "#2563eb", "icon": "wallet"}
-    return form_view(request, "partials/accounts/form.html", _form_context(None, values, {}), title="Nova conta")
+    values = {
+        "start_date": svc.clock.today().isoformat(),
+        "type": "checking",
+        "color": "#2563eb",
+        "icon": "wallet",
+    }
+    return form_view(
+        request, "partials/accounts/form.html", _form_context(None, values, {}), title="Nova conta"
+    )
 
 
 @router.post("", dependencies=write_guard)
@@ -77,7 +89,13 @@ async def create(request: Request, session: VerifiedSession, svc: Svc) -> Respon
         data = _read(FormReader(form), svc.clock.today())
         svc.accounts.create(session.user.id, data)
     except AppError as exc:
-        return form_view(request, "partials/accounts/form.html", _form_context(None, form_values(form), exc.field_errors, exc.detail), title="Nova conta", status_code=422)
+        return form_view(
+            request,
+            "partials/accounts/form.html",
+            _form_context(None, form_values(form), exc.field_errors, exc.detail),
+            title="Nova conta",
+            status_code=422,
+        )
     return success(request, "Conta criada.", fallback_url="/app/contas")
 
 
@@ -94,7 +112,12 @@ def edit(request: Request, account_id: str, session: VerifiedSession, svc: Svc) 
         "color": account.color,
         "icon": account.icon,
     }
-    return form_view(request, "partials/accounts/form.html", _form_context(account, values, {}), title="Editar conta")
+    return form_view(
+        request,
+        "partials/accounts/form.html",
+        _form_context(account, values, {}),
+        title="Editar conta",
+    )
 
 
 @router.post("/{account_id}", dependencies=write_guard)
@@ -105,14 +128,22 @@ async def update(request: Request, account_id: str, session: VerifiedSession, sv
         data = _read(FormReader(form), svc.clock.today())
         svc.accounts.update(session.user.id, account_id, data)
     except AppError as exc:
-        return form_view(request, "partials/accounts/form.html", _form_context(account, form_values(form), exc.field_errors, exc.detail), title="Editar conta", status_code=422)
+        return form_view(
+            request,
+            "partials/accounts/form.html",
+            _form_context(account, form_values(form), exc.field_errors, exc.detail),
+            title="Editar conta",
+            status_code=422,
+        )
     return success(request, "Conta atualizada.", fallback_url="/app/contas")
 
 
 @router.post("/{account_id}/arquivar", dependencies=write_guard)
 def archive(request: Request, account_id: str, session: VerifiedSession, svc: Svc) -> Response:
     svc.accounts.set_archived(session.user.id, account_id, True)
-    return success(request, "Conta arquivada. O histórico foi preservado.", fallback_url="/app/contas")
+    return success(
+        request, "Conta arquivada. O histórico foi preservado.", fallback_url="/app/contas"
+    )
 
 
 @router.post("/{account_id}/reativar", dependencies=write_guard)

@@ -59,7 +59,9 @@ def reports_index(request: Request, session: VerifiedSession) -> Response:
 def _filters_context(svc: Svc, user_id: uuid.UUID) -> dict[str, object]:
     return {
         "accounts": svc.accounts.list(user_id, include_archived=True),
-        "categories": svc.categories.list(user_id, kind=CategoryKind.EXPENSE, include_archived=True),
+        "categories": svc.categories.list(
+            user_id, kind=CategoryKind.EXPENSE, include_archived=True
+        ),
     }
 
 
@@ -100,17 +102,28 @@ def report_view(request: Request, key: str, session: VerifiedSession, svc: Svc) 
         "issued_at": svc.clock.now(),
         **_filters_context(svc, session.user.id),
     }
-    return page(request, "pages/reports/print.html" if printing else "pages/reports/view.html", context)
+    return page(
+        request, "pages/reports/print.html" if printing else "pages/reports/view.html", context
+    )
 
 
-def _export_result(request: Request, key: str, session: VerifiedSession, svc: Svc) -> tuple[ReportResult, ReportParams]:
+def _export_result(
+    request: Request, key: str, session: VerifiedSession, svc: Svc
+) -> tuple[ReportResult, ReportParams]:
     if key not in REPORTS:
         raise NotFoundError("Relatório não encontrado.")
     params = params_from_request(request, svc, session.user.id)
     result = svc.reports.build(session.user.id, key, params, limit=svc.settings.export_max_rows)
     if len(result.rows) > svc.settings.export_max_rows:
-        raise ValidationFailed("Exportação acima do limite de linhas. Reduza o período.", code="export_limit")
-    svc.audit.record("report.exported", user_id=session.user.id, entity_type="report", changes={"relatorio": key, "periodo": params.label})
+        raise ValidationFailed(
+            "Exportação acima do limite de linhas. Reduza o período.", code="export_limit"
+        )
+    svc.audit.record(
+        "report.exported",
+        user_id=session.user.id,
+        entity_type="report",
+        changes={"relatorio": key, "periodo": params.label},
+    )
     svc.db.commit()
     return result, params
 
@@ -145,10 +158,22 @@ def audit_index(request: Request, session: VerifiedSession, svc: Svc) -> Respons
     except ValueError:
         page_number = 1
     page_size = 50
-    total = svc.db.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.user_id == session.user.id)) or 0
-    logs = svc.audit.list_for_user(session.user.id, limit=page_size, offset=(page_number - 1) * page_size)
+    total = (
+        svc.db.scalar(
+            select(func.count()).select_from(AuditLog).where(AuditLog.user_id == session.user.id)
+        )
+        or 0
+    )
+    logs = svc.audit.list_for_user(
+        session.user.id, limit=page_size, offset=(page_number - 1) * page_size
+    )
     return page(
         request,
         "pages/audit.html",
-        {"logs": logs, "page": page_number, "pages": max(1, -(-total // page_size)), "total": total},
+        {
+            "logs": logs,
+            "page": page_number,
+            "pages": max(1, -(-total // page_size)),
+            "total": total,
+        },
     )

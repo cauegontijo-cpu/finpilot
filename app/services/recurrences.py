@@ -7,6 +7,7 @@ simultâneas do agendador nunca duplicam ocorrências (RN045/RN048/RN050).
 
 from __future__ import annotations
 
+import builtins
 import logging
 import uuid
 from dataclasses import dataclass
@@ -18,7 +19,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.clock import Clock
-from app.core.errors import BusinessRuleViolation, InsufficientFunds, ValidationFailed
+from app.core.errors import BusinessRuleViolation, InsufficientFunds, ValidationFailed, expect
 from app.domain.ledger import TransactionOrigin, TransactionStatus, TransactionType
 from app.domain.recurrence import Frequency, occurrences_between
 from app.models import CategoryKind, RecurrenceRule, RecurrenceStatus, Transaction
@@ -36,8 +37,18 @@ logger = logging.getLogger(__name__)
 #: Ao criar uma regra com início no passado, gera no máximo este período retroativo.
 INITIAL_BACKFILL_DAYS = 60
 _FIELDS = [
-    "type", "description", "amount_cents", "account_id", "category_id", "frequency", "interval",
-    "start_date", "end_date", "status", "auto_settle", "notes",
+    "type",
+    "description",
+    "amount_cents",
+    "account_id",
+    "category_id",
+    "frequency",
+    "interval",
+    "start_date",
+    "end_date",
+    "status",
+    "auto_settle",
+    "notes",
 ]
 _SCHEDULE_FIELDS = {"frequency", "interval", "start_date", "end_date"}
 
@@ -64,7 +75,9 @@ class GenerationResult:
 
 
 class RecurrenceService:
-    def __init__(self, db: Session, clock: Clock, audit: AuditService, horizon_days: int = 90) -> None:
+    def __init__(
+        self, db: Session, clock: Clock, audit: AuditService, horizon_days: int = 90
+    ) -> None:
         self.db = db
         self.clock = clock
         self.audit = audit
@@ -73,10 +86,19 @@ class RecurrenceService:
         self.categories = CategoryService(db, clock, audit)
 
     # ---------------------------------------------------------------- consultas
-    def get(self, user_id: uuid.UUID, rule_id: str | uuid.UUID, *, for_update: bool = False) -> RecurrenceRule:
-        return get_owned(self.db, RecurrenceRule, rule_id, user_id, for_update=for_update, message="Recorrência não encontrada.")
+    def get(
+        self, user_id: uuid.UUID, rule_id: str | uuid.UUID, *, for_update: bool = False
+    ) -> RecurrenceRule:
+        return get_owned(
+            self.db,
+            RecurrenceRule,
+            rule_id,
+            user_id,
+            for_update=for_update,
+            message="Recorrência não encontrada.",
+        )
 
-    def list(self, user_id: uuid.UUID) -> list[RecurrenceRule]:
+    def list(self, user_id: uuid.UUID) -> builtins.list[RecurrenceRule]:
         return list(
             self.db.scalars(
                 select(RecurrenceRule)
@@ -86,16 +108,23 @@ class RecurrenceService:
             )
         )
 
-    def next_occurrences(self, rule: RecurrenceRule, count: int = 5) -> list[date]:
+    def next_occurrences(self, rule: RecurrenceRule, count: int = 5) -> builtins.list[date]:
         if rule.status is not RecurrenceStatus.ACTIVE:
             return []
         today = self.clock.today()
         dates = occurrences_between(
-            rule.start_date, rule.frequency, rule.interval, today, today + timedelta(days=3660), rule.end_date
+            rule.start_date,
+            rule.frequency,
+            rule.interval,
+            today,
+            today + timedelta(days=3660),
+            rule.end_date,
         )
         return list(islice(dates, count))
 
-    def occurrences(self, user_id: uuid.UUID, rule_id: str, limit: int = 24) -> list[Transaction]:
+    def occurrences(
+        self, user_id: uuid.UUID, rule_id: str, limit: int = 24
+    ) -> builtins.list[Transaction]:
         rule = self.get(user_id, rule_id)
         return list(
             self.db.scalars(
@@ -145,11 +174,16 @@ class RecurrenceService:
         today = self.clock.today()
         rule = RecurrenceRule(user_id=user_id, status=RecurrenceStatus.ACTIVE, **data.__dict__)
         # Backfill limitado: não gera anos de ocorrências passadas ao criar a regra.
-        rule.generated_until = max(rule.start_date, today - timedelta(days=INITIAL_BACKFILL_DAYS)) - timedelta(days=1)
+        rule.generated_until = max(
+            rule.start_date, today - timedelta(days=INITIAL_BACKFILL_DAYS)
+        ) - timedelta(days=1)
         self.db.add(rule)
         self.db.flush()
         self.audit.record(
-            "recurrence.created", user_id=user_id, entity_type="recurrence", entity_id=rule.id,
+            "recurrence.created",
+            user_id=user_id,
+            entity_type="recurrence",
+            entity_id=rule.id,
             changes=model_snapshot(rule, _FIELDS),
         )
         self.generate(rule)
@@ -160,7 +194,9 @@ class RecurrenceService:
         """RN047: altera somente ocorrências FUTURAS ainda previstas; histórico efetivado intacto."""
         rule = self.get(user_id, rule_id, for_update=True)
         if rule.status is RecurrenceStatus.CANCELLED:
-            raise BusinessRuleViolation("Recorrência cancelada não pode ser editada.", code="recurrence_cancelled")
+            raise BusinessRuleViolation(
+                "Recorrência cancelada não pode ser editada.", code="recurrence_cancelled"
+            )
         data = self._validate(user_id, data)
         before = model_snapshot(rule, _FIELDS)
         for key, value in data.__dict__.items():
@@ -183,7 +219,13 @@ class RecurrenceService:
                 tx.description = rule.description
                 tx.amount_cents = rule.amount_cents
                 tx.notes = rule.notes
-        self.audit.record("recurrence.updated", user_id=user_id, entity_type="recurrence", entity_id=rule.id, changes=changes)
+        self.audit.record(
+            "recurrence.updated",
+            user_id=user_id,
+            entity_type="recurrence",
+            entity_id=rule.id,
+            changes=changes,
+        )
         self.db.flush()
         if rule.status is RecurrenceStatus.ACTIVE:
             self.generate(rule)
@@ -204,21 +246,35 @@ class RecurrenceService:
     def pause(self, user_id: uuid.UUID, rule_id: str) -> RecurrenceRule:
         rule = self.get(user_id, rule_id, for_update=True)
         if rule.status is not RecurrenceStatus.ACTIVE:
-            raise BusinessRuleViolation("Apenas recorrências ativas podem ser pausadas.", code="recurrence_state")
+            raise BusinessRuleViolation(
+                "Apenas recorrências ativas podem ser pausadas.", code="recurrence_state"
+            )
         removed = self._drop_future_planned(rule)
         rule.status = RecurrenceStatus.PAUSED
-        self.audit.record("recurrence.paused", user_id=user_id, entity_type="recurrence", entity_id=rule.id, changes={"previstas_removidas": removed})
+        self.audit.record(
+            "recurrence.paused",
+            user_id=user_id,
+            entity_type="recurrence",
+            entity_id=rule.id,
+            changes={"previstas_removidas": removed},
+        )
         self.db.commit()
         return rule
 
     def resume(self, user_id: uuid.UUID, rule_id: str) -> RecurrenceRule:
         rule = self.get(user_id, rule_id, for_update=True)
         if rule.status is not RecurrenceStatus.PAUSED:
-            raise BusinessRuleViolation("Apenas recorrências pausadas podem ser retomadas.", code="recurrence_state")
+            raise BusinessRuleViolation(
+                "Apenas recorrências pausadas podem ser retomadas.", code="recurrence_state"
+            )
         rule.status = RecurrenceStatus.ACTIVE
         # Não gera retroativamente o período pausado.
-        rule.generated_until = max(rule.generated_until or self.clock.today(), self.clock.today() - timedelta(days=1))
-        self.audit.record("recurrence.resumed", user_id=user_id, entity_type="recurrence", entity_id=rule.id)
+        rule.generated_until = max(
+            rule.generated_until or self.clock.today(), self.clock.today() - timedelta(days=1)
+        )
+        self.audit.record(
+            "recurrence.resumed", user_id=user_id, entity_type="recurrence", entity_id=rule.id
+        )
         self.db.flush()
         self.generate(rule)
         self.db.commit()
@@ -230,7 +286,13 @@ class RecurrenceService:
             return rule
         removed = self._drop_future_planned(rule)
         rule.status = RecurrenceStatus.CANCELLED
-        self.audit.record("recurrence.cancelled", user_id=user_id, entity_type="recurrence", entity_id=rule.id, changes={"previstas_removidas": removed})
+        self.audit.record(
+            "recurrence.cancelled",
+            user_id=user_id,
+            entity_type="recurrence",
+            entity_id=rule.id,
+            changes={"previstas_removidas": removed},
+        )
         self.db.commit()
         return rule
 
@@ -244,11 +306,15 @@ class RecurrenceService:
             return GenerationResult(0, 0)
         today = self.clock.today()
         until = until or today + timedelta(days=self.horizon_days)
-        window_start = (rule.generated_until or rule.start_date - timedelta(days=1)) + timedelta(days=1)
+        window_start = (rule.generated_until or rule.start_date - timedelta(days=1)) + timedelta(
+            days=1
+        )
         if window_start > until:
             return GenerationResult(0, 0)
         created = settled = 0
-        for day in occurrences_between(rule.start_date, rule.frequency, rule.interval, window_start, until, rule.end_date):
+        for day in occurrences_between(
+            rule.start_date, rule.frequency, rule.interval, window_start, until, rule.end_date
+        ):
             stmt = (
                 insert(Transaction)
                 .values(
@@ -289,8 +355,7 @@ class RecurrenceService:
 
     def _try_settle(self, rule: RecurrenceRule, tx_id: uuid.UUID, day: date) -> bool:
         """Efetivação automática explícita (RN049). Sem saldo, a ocorrência permanece prevista."""
-        tx = self.db.get(Transaction, tx_id)
-        assert tx is not None
+        tx = expect(self.db.get(Transaction, tx_id))
         ledger = Ledger(self.db)
         ledger.lock(rule.user_id, [tx.account_id])
         tx.status = TransactionStatus.SETTLED
@@ -300,6 +365,8 @@ class RecurrenceService:
         except InsufficientFunds:
             tx.status = TransactionStatus.PLANNED
             tx.settlement_date = None
-            logger.warning("efetivação automática recusada por saldo", extra={"recurrence_id": str(rule.id)})
+            logger.warning(
+                "efetivação automática recusada por saldo", extra={"recurrence_id": str(rule.id)}
+            )
             return False
         return True

@@ -89,7 +89,9 @@ class CardIn(InputModel):
     closing_day: int = Field(ge=1, le=31)
     due_day: int = Field(ge=1, le=31)
     institution: str | None = Field(default=None, max_length=80)
-    last4: str | None = Field(default=None, pattern=r"^\d{4}$", description="Somente os 4 últimos dígitos")
+    last4: str | None = Field(
+        default=None, pattern=r"^\d{4}$", description="Somente os 4 últimos dígitos"
+    )
     color: str = "#0b1b3f"
 
 

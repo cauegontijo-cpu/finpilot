@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import func, select
@@ -62,7 +63,12 @@ class DashboardData:
 
     @property
     def has_data(self) -> bool:
-        return any(m.income or m.expense or m.income_planned or m.expense_planned for m in self.history) or self.balance != 0
+        return (
+            any(
+                m.income or m.expense or m.income_planned or m.expense_planned for m in self.history
+            )
+            or self.balance != 0
+        )
 
 
 class DashboardService:
@@ -83,7 +89,9 @@ class DashboardService:
             or 0
         )
 
-    def upcoming(self, user_id: uuid.UUID, today: date, days: int = 15, account_id: uuid.UUID | None = None) -> list[UpcomingItem]:
+    def upcoming(
+        self, user_id: uuid.UUID, today: date, days: int = 15, account_id: uuid.UUID | None = None
+    ) -> list[UpcomingItem]:
         horizon = today + timedelta(days=days)
         expected = func.coalesce(Transaction.due_date, Transaction.competence_date)
         stmt = (
@@ -164,13 +172,29 @@ class DashboardService:
             "type": "bar",
             "labels": labels,
             "datasets": [
-                {"label": "Receitas", "data": [m.income for m in data.history], "color": "positive"},
-                {"label": "Despesas", "data": [m.expense for m in data.history], "color": "negative"},
+                {
+                    "label": "Receitas",
+                    "data": [m.income for m in data.history],
+                    "color": "positive",
+                },
+                {
+                    "label": "Despesas",
+                    "data": [m.expense for m in data.history],
+                    "color": "negative",
+                },
             ],
         }
         data.tables["income_expense"] = {
             "headers": ["Mês", "Receitas", "Despesas", "Resultado"],
-            "rows": [[m.month.short_label(), format_brl(m.income), format_brl(m.expense), format_brl(m.net)] for m in data.history],
+            "rows": [
+                [
+                    m.month.short_label(),
+                    format_brl(m.income),
+                    format_brl(m.expense),
+                    format_brl(m.net),
+                ]
+                for m in data.history
+            ],
         }
 
         categories = self.analytics.expenses_by_category(user_id, data.month, data.scope)
@@ -193,12 +217,20 @@ class DashboardService:
         }
         data.charts["categories_total"] = sum(c.settled for c in categories)
 
-        evolution = self.analytics.balance_evolution(user_id, data.month.shift(-11), data.month, data.scope)
+        evolution = self.analytics.balance_evolution(
+            user_id, data.month.shift(-11), data.month, data.scope
+        )
         data.charts["balance"] = {
             "type": "line",
             "labels": [m.short_label() for m, _ in evolution],
             "legend": False,
-            "datasets": [{"label": "Saldo consolidado", "data": [v for _, v in evolution], "color": "primary"}],
+            "datasets": [
+                {
+                    "label": "Saldo consolidado",
+                    "data": [v for _, v in evolution],
+                    "color": "primary",
+                }
+            ],
         }
         data.tables["balance"] = {
             "headers": ["Mês", "Saldo ao final do mês"],
@@ -215,14 +247,29 @@ class DashboardService:
             "datasets": [
                 {
                     "label": "Utilizado",
-                    "data": [float(min(i.pct, 150)) for i in items],
-                    "color": ["negative" if i.level == "over" else "warning" if i.level == "warning" else "primary" for i in items],
+                    "data": [float(min(i.pct, Decimal(150))) for i in items],
+                    "color": [
+                        "negative"
+                        if i.level == "over"
+                        else "warning"
+                        if i.level == "warning"
+                        else "primary"
+                        for i in items
+                    ],
                 }
             ],
         }
         data.tables["budgets"] = {
             "headers": ["Categoria", "Planejado", "Utilizado", "%"],
-            "rows": [[i.budget.category.name, format_brl(i.limit), format_brl(i.used), f"{i.pct}%".replace(".", ",")] for i in items],
+            "rows": [
+                [
+                    i.budget.category.name,
+                    format_brl(i.limit),
+                    format_brl(i.used),
+                    f"{i.pct}%".replace(".", ","),
+                ]
+                for i in items
+            ],
         }
 
         monthly = data.forecast.monthly()
@@ -230,8 +277,16 @@ class DashboardService:
             "type": "bar",
             "labels": [m.short_label() for m, _, _ in monthly],
             "datasets": [
-                {"label": "Entradas previstas", "data": [i for _, i, _ in monthly], "color": "positive"},
-                {"label": "Saídas previstas", "data": [o for _, _, o in monthly], "color": "negative"},
+                {
+                    "label": "Entradas previstas",
+                    "data": [i for _, i, _ in monthly],
+                    "color": "positive",
+                },
+                {
+                    "label": "Saídas previstas",
+                    "data": [o for _, _, o in monthly],
+                    "color": "negative",
+                },
             ],
         }
         data.tables["forecast"] = {

@@ -41,7 +41,12 @@ def set_theme(
     value = theme if theme in THEMES else "system"
     response = redirect(request, safe_next_url(next_url, default="/"))
     response.set_cookie(
-        THEME_COOKIE, value, max_age=365 * 86400, httponly=True, samesite="lax", secure=settings.cookie_secure
+        THEME_COOKIE,
+        value,
+        max_age=365 * 86400,
+        httponly=True,
+        samesite="lax",
+        secure=settings.cookie_secure,
     )
     return response
 
@@ -67,4 +72,6 @@ def ready(request: Request, db: DbSession) -> Response:
         except Exception:  # noqa: BLE001
             checks["redis"] = "error"
     healthy = all(v == "ok" for v in checks.values())
-    return JSONResponse({"status": "ok" if healthy else "degraded", **checks}, status_code=200 if healthy else 503)
+    return JSONResponse(
+        {"status": "ok" if healthy else "degraded", **checks}, status_code=200 if healthy else 503
+    )

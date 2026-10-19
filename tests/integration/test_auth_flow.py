@@ -29,7 +29,9 @@ def test_health_endpoints(client: TestClient) -> None:
     assert ready.json()["database"] == "ok"
 
 
-def test_register_creates_user_default_categories_and_sends_verification(client: TestClient, db: Session) -> None:
+def test_register_creates_user_default_categories_and_sends_verification(
+    client: TestClient, db: Session
+) -> None:
     response = _register(client)
     assert response.status_code == 200
     user = db.scalars(select(User).where(User.email == "carla@example.com")).one()
@@ -49,11 +51,15 @@ def test_register_validation_errors(client: TestClient) -> None:
     assert "política de privacidade" in response.text
 
 
-def test_register_existing_email_does_not_reveal_existence(client: TestClient, user: Any, db: Session) -> None:
+def test_register_existing_email_does_not_reveal_existence(
+    client: TestClient, user: Any, db: Session
+) -> None:
     response = _register(client, email=user.email.upper())
     assert response.status_code == 200
     assert "Verifique sua caixa de entrada" in response.text
-    assert db.scalars(select(User).where(User.email == user.email)).one().full_name == user.full_name
+    assert (
+        db.scalars(select(User).where(User.email == user.email)).one().full_name == user.full_name
+    )
     assert "Tentativa de cadastro" in app.state.mailer.outbox[-1].subject
 
 
@@ -78,13 +84,17 @@ def test_unverified_user_is_redirected_to_verification(client: TestClient, db: S
 
 def test_login_invalid_credentials_generic_message(client: TestClient, user: Any) -> None:
     wrong = post_form(client, "/login", {"email": user.email, "password": "senha-errada-123"})
-    missing = post_form(client, "/login", {"email": "naoexiste@example.com", "password": "senha-errada-123"})
+    missing = post_form(
+        client, "/login", {"email": "naoexiste@example.com", "password": "senha-errada-123"}
+    )
     assert wrong.status_code == missing.status_code == 401
     assert "E-mail ou senha inválidos." in wrong.text
     assert "E-mail ou senha inválidos." in missing.text
 
 
-def test_login_rotates_session_and_logout_invalidates(client: TestClient, user: Any, db: Session) -> None:
+def test_login_rotates_session_and_logout_invalidates(
+    client: TestClient, user: Any, db: Session
+) -> None:
     cookie_name = get_settings().session_cookie_effective_name
     login(client, user.email)
     first = client.cookies.get(cookie_name)
@@ -100,23 +110,39 @@ def test_login_rotates_session_and_logout_invalidates(client: TestClient, user: 
     assert client.get("/verifique-email", follow_redirects=False).status_code == 303
 
 
-def test_login_failures_are_audited_without_email_in_clear(client: TestClient, user: Any, db: Session) -> None:
+def test_login_failures_are_audited_without_email_in_clear(
+    client: TestClient, user: Any, db: Session
+) -> None:
     post_form(client, "/login", {"email": user.email, "password": "senha-errada-123"})
     log = db.scalars(select(AuditLog).where(AuditLog.event_type == "auth.login_failed")).one()
     assert user.email not in str(log.changes)
     assert log.outcome == "failure"
 
 
-def test_password_reset_flow_revokes_sessions_and_token_single_use(client: TestClient, user: Any, db: Session) -> None:
+def test_password_reset_flow_revokes_sessions_and_token_single_use(
+    client: TestClient, user: Any, db: Session
+) -> None:
     login(client, user.email)
     post_form(client, "/recuperar-senha", {"email": user.email})
     token = extract_token(app.state.mailer.outbox[-1].text, "/redefinir-senha")
     new_password = "Outra-Senha-Segura-99"
-    response = post_form(client, "/redefinir-senha", {"token": token, "password": new_password, "password_confirm": new_password})
+    response = post_form(
+        client,
+        "/redefinir-senha",
+        {"token": token, "password": new_password, "password_confirm": new_password},
+    )
     assert response.status_code == 303
-    active = [s for s in db.scalars(select(UserSession).where(UserSession.user_id == user.id)) if s.revoked_at is None]
+    active = [
+        s
+        for s in db.scalars(select(UserSession).where(UserSession.user_id == user.id))
+        if s.revoked_at is None
+    ]
     assert active == []
-    reuse = post_form(client, "/redefinir-senha", {"token": token, "password": new_password, "password_confirm": new_password})
+    reuse = post_form(
+        client,
+        "/redefinir-senha",
+        {"token": token, "password": new_password, "password_confirm": new_password},
+    )
     assert reuse.status_code == 400
     login(client, user.email, new_password)
 

@@ -93,7 +93,9 @@ class Settings(BaseSettings):
     @property
     def session_cookie_effective_name(self) -> str:
         # Prefixo __Host- exige Secure, Path=/ e ausência de Domain.
-        return f"__Host-{self.session_cookie_name}" if self.cookie_secure else self.session_cookie_name
+        return (
+            f"__Host-{self.session_cookie_name}" if self.cookie_secure else self.session_cookie_name
+        )
 
     @model_validator(mode="after")
     def _validate_security(self) -> Self:
@@ -125,4 +127,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+    return Settings()

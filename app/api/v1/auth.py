@@ -8,7 +8,15 @@ from datetime import datetime
 from fastapi import APIRouter, Request, Response
 from pydantic import EmailStr, Field
 
-from app.core.deps import AppClock, AppSettings, Auth, CurrentSession, DbSession, csrf_token, session_cookie
+from app.core.deps import (
+    AppClock,
+    AppSettings,
+    Auth,
+    CurrentSession,
+    DbSession,
+    csrf_token,
+    session_cookie,
+)
 from app.schemas.common import PROBLEM_RESPONSES, InputModel, OutputModel
 from app.services.user_data import export_user_data
 from app.web.auth import clear_session_cookie, set_session_cookie
@@ -84,7 +92,9 @@ def get_csrf(request: Request) -> CsrfOut:
     return CsrfOut(csrf_token=csrf_token(request))
 
 
-@router.post("/auth/register", status_code=202, summary="Cadastro (resposta idêntica se o e-mail já existir)")
+@router.post(
+    "/auth/register", status_code=202, summary="Cadastro (resposta idêntica se o e-mail já existir)"
+)
 def register(data: RegisterIn, auth: Auth) -> dict[str, str]:
     auth.register(
         full_name=data.full_name,
@@ -96,14 +106,20 @@ def register(data: RegisterIn, auth: Auth) -> dict[str, str]:
     return {"detail": "Se o e-mail puder ser cadastrado, enviaremos um link de confirmação."}
 
 
-@router.post("/auth/verify-email", status_code=204, summary="Confirma o e-mail com o token recebido")
+@router.post(
+    "/auth/verify-email", status_code=204, summary="Confirma o e-mail com o token recebido"
+)
 def verify_email(data: TokenIn, auth: Auth) -> Response:
     auth.verify_email(data.token)
     return Response(status_code=204)
 
 
-@router.post("/auth/login", response_model=UserOut, summary="Login: cria sessão nova (cookie HttpOnly)")
-def login(data: LoginIn, request: Request, response: Response, auth: Auth, settings: AppSettings) -> UserOut:
+@router.post(
+    "/auth/login", response_model=UserOut, summary="Login: cria sessão nova (cookie HttpOnly)"
+)
+def login(
+    data: LoginIn, request: Request, response: Response, auth: Auth, settings: AppSettings
+) -> UserOut:
     user = auth.authenticate(data.email, data.password)
     raw = auth.start_session(user, previous_raw_token=session_cookie(request, settings))
     set_session_cookie(response, settings, raw)
@@ -118,13 +134,21 @@ def logout(session: CurrentSession, auth: Auth, settings: AppSettings) -> Respon
     return response
 
 
-@router.post("/auth/password-reset", status_code=202, summary="Solicita redefinição (não revela se o e-mail existe)")
+@router.post(
+    "/auth/password-reset",
+    status_code=202,
+    summary="Solicita redefinição (não revela se o e-mail existe)",
+)
 def password_reset(data: ResetRequestIn, auth: Auth) -> dict[str, str]:
     auth.request_password_reset(data.email)
     return {"detail": "Se houver uma conta com esse e-mail, enviaremos um link."}
 
 
-@router.post("/auth/password-reset/confirm", status_code=204, summary="Redefine a senha e revoga todas as sessões")
+@router.post(
+    "/auth/password-reset/confirm",
+    status_code=204,
+    summary="Redefine a senha e revoga todas as sessões",
+)
 def password_reset_confirm(data: ResetConfirmIn, auth: Auth) -> Response:
     auth.reset_password(data.token, data.password, data.password_confirm)
     return Response(status_code=204)
@@ -141,7 +165,9 @@ def update_me(data: UserUpdate, session: CurrentSession, auth: Auth) -> UserOut:
     return UserOut.model_validate(session.user)
 
 
-@router.post("/users/me/password", status_code=204, tags=["users"], summary="Troca a senha (exige a atual)")
+@router.post(
+    "/users/me/password", status_code=204, tags=["users"], summary="Troca a senha (exige a atual)"
+)
 def change_password(data: PasswordChangeIn, session: CurrentSession, auth: Auth) -> Response:
     auth.change_password(session, data.current_password, data.password, data.password_confirm)
     return Response(status_code=204)
@@ -155,19 +181,29 @@ def sessions(session: CurrentSession, auth: Auth) -> list[SessionOut]:
     ]
 
 
-@router.delete("/users/me/sessions", status_code=204, tags=["users"], summary="Encerra as outras sessões")
+@router.delete(
+    "/users/me/sessions", status_code=204, tags=["users"], summary="Encerra as outras sessões"
+)
 def revoke_other_sessions(session: CurrentSession, auth: Auth) -> Response:
     auth.revoke_other_sessions(session)
     return Response(status_code=204)
 
 
-@router.get("/users/me/export", tags=["users"], summary="Exporta todos os dados pessoais e financeiros (JSON)")
+@router.get(
+    "/users/me/export",
+    tags=["users"],
+    summary="Exporta todos os dados pessoais e financeiros (JSON)",
+)
 def export(session: CurrentSession, db: DbSession, clock: AppClock) -> dict[str, object]:
     return export_user_data(db, session.user, clock.now())
 
 
-@router.delete("/users/me", status_code=204, tags=["users"], summary="Exclui a conta (senha + e-mail)")
-def delete_me(data: AccountDeleteIn, session: CurrentSession, auth: Auth, settings: AppSettings) -> Response:
+@router.delete(
+    "/users/me", status_code=204, tags=["users"], summary="Exclui a conta (senha + e-mail)"
+)
+def delete_me(
+    data: AccountDeleteIn, session: CurrentSession, auth: Auth, settings: AppSettings
+) -> Response:
     auth.delete_account(session, data.password, data.email_confirmation)
     response = Response(status_code=204)
     clear_session_cookie(response, settings)

@@ -18,7 +18,12 @@ router = APIRouter(prefix="/app/configuracoes", include_in_schema=False)
 
 
 def _render(
-    request: Request, auth: Auth, session: CurrentSession, *, status_code: int = 200, **extra: object
+    request: Request,
+    auth: Auth,
+    session: CurrentSession,
+    *,
+    status_code: int = 200,
+    **extra: object,
 ) -> Response:
     context = {
         "sessions": auth.list_sessions(session.user),
@@ -37,12 +42,22 @@ def settings_page(request: Request, auth: Auth, session: CurrentSession) -> Resp
 
 @router.post("/perfil")
 def update_profile(
-    request: Request, auth: Auth, session: CurrentSession, full_name: Annotated[str, Form(max_length=200)] = ""
+    request: Request,
+    auth: Auth,
+    session: CurrentSession,
+    full_name: Annotated[str, Form(max_length=200)] = "",
 ) -> Response:
     try:
         auth.change_name(session.user, full_name)
     except ValidationFailed as exc:
-        return _render(request, auth, session, errors=exc.field_errors, section_error={"profile": exc.detail}, status_code=422)
+        return _render(
+            request,
+            auth,
+            session,
+            errors=exc.field_errors,
+            section_error={"profile": exc.detail},
+            status_code=422,
+        )
     return redirect(request, "/app/configuracoes", message="Perfil atualizado.")
 
 
@@ -57,8 +72,17 @@ def change_email(
     try:
         auth.request_email_change(session.user, email, password)
     except (ValidationFailed, RateLimited) as exc:
-        return _render(request, auth, session, errors=exc.field_errors, section_error={"email": exc.detail}, status_code=exc.status_code)
-    return redirect(request, "/app/configuracoes", message="Enviamos um link de confirmação para o novo e-mail.")
+        return _render(
+            request,
+            auth,
+            session,
+            errors=exc.field_errors,
+            section_error={"email": exc.detail},
+            status_code=exc.status_code,
+        )
+    return redirect(
+        request, "/app/configuracoes", message="Enviamos um link de confirmação para o novo e-mail."
+    )
 
 
 @router.post("/senha")
@@ -73,8 +97,17 @@ def change_password(
     try:
         auth.change_password(session, current_password, password, password_confirm)
     except (ValidationFailed, RateLimited) as exc:
-        return _render(request, auth, session, errors=exc.field_errors, section_error={"password": exc.detail}, status_code=exc.status_code)
-    return redirect(request, "/app/configuracoes", message="Senha alterada. As demais sessões foram encerradas.")
+        return _render(
+            request,
+            auth,
+            session,
+            errors=exc.field_errors,
+            section_error={"password": exc.detail},
+            status_code=exc.status_code,
+        )
+    return redirect(
+        request, "/app/configuracoes", message="Senha alterada. As demais sessões foram encerradas."
+    )
 
 
 @router.post("/sessoes/encerrar-outras")
@@ -112,7 +145,14 @@ def delete_account(
     try:
         auth.delete_account(session, password, email_confirmation)
     except (ValidationFailed, RateLimited) as exc:
-        return _render(request, auth, session, errors=exc.field_errors, section_error={"delete": exc.detail}, status_code=exc.status_code)
+        return _render(
+            request,
+            auth,
+            session,
+            errors=exc.field_errors,
+            section_error={"delete": exc.detail},
+            status_code=exc.status_code,
+        )
     response = redirect(request, "/", message="Sua conta e seus dados foram excluídos.")
     clear_session_cookie(response, settings)
     return response

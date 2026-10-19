@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.core import ratelimit
 from app.core.clock import Clock
 from app.core.config import Settings
-from app.core.errors import AppError, InvalidCredentials, ValidationFailed
+from app.core.errors import AppError, InvalidCredentials, ValidationFailed, expect
 from app.core.mailer import Mailer
 from app.core.ratelimit import RateLimiter
 from app.core.security import (
@@ -65,7 +65,9 @@ def normalize_email(raw: str) -> str:
     try:
         result = validate_email((raw or "").strip(), check_deliverability=False)
     except EmailNotValidError as exc:
-        raise ValidationFailed("E-mail inválido.", field_errors={"email": "E-mail inválido"}) from exc
+        raise ValidationFailed(
+            "E-mail inválido.", field_errors={"email": "E-mail inválido"}
+        ) from exc
     return result.normalized.lower()
 
 
@@ -124,7 +126,7 @@ class AuthService:
         if problems:
             errors["password"] = " ".join(problems)
         if password != password_confirm:
-            errors["password_confirm"] = "As senhas não conferem."
+            errors["password_confirm"] = "As senhas não conferem."  # noqa: S105 - mensagem, não segredo
         if not accept_privacy:
             errors["accept_privacy"] = "É necessário aceitar a política de privacidade."
         if errors:
@@ -178,7 +180,8 @@ class AuthService:
                 purpose=purpose,
                 token_hash=hash_token(raw),
                 new_email=new_email,
-                expires_at=self.clock.now() + timedelta(hours=self.settings.email_verification_ttl_hours),
+                expires_at=self.clock.now()
+                + timedelta(hours=self.settings.email_verification_ttl_hours),
             )
         )
         return raw
@@ -197,11 +200,12 @@ class AuthService:
 
     def verify_email(self, raw_token: str) -> User:
         token = self._consume_email_token(raw_token, EmailTokenPurpose.VERIFY)
-        user = self.db.get(User, token.user_id)
-        assert user is not None
+        user = expect(self.db.get(User, token.user_id))
         if user.email_verified_at is None:
             user.email_verified_at = self.clock.now()
-        self.audit.record("auth.email_verified", user_id=user.id, entity_type="user", entity_id=user.id)
+        self.audit.record(
+            "auth.email_verified", user_id=user.id, entity_type="user", entity_id=user.id
+        )
         self.db.commit()
         return user
 
@@ -287,7 +291,9 @@ class AuthService:
 
     def logout(self, auth: AuthenticatedSession) -> None:
         auth.session.revoked_at = self.clock.now()
-        self.audit.record("auth.logout", user_id=auth.user.id, entity_type="user", entity_id=auth.user.id)
+        self.audit.record(
+            "auth.logout", user_id=auth.user.id, entity_type="user", entity_id=auth.user.id
+        )
         self.db.commit()
 
     def list_sessions(self, user: User) -> list[UserSession]:
@@ -315,7 +321,10 @@ class AuthService:
             .values(revoked_at=self.clock.now())
         )
         self.audit.record(
-            "auth.sessions_revoked", user_id=auth.user.id, entity_type="user", entity_id=auth.user.id
+            "auth.sessions_revoked",
+            user_id=auth.user.id,
+            entity_type="user",
+            entity_id=auth.user.id,
         )
         self.db.commit()
         return int(result.rowcount or 0)  # type: ignore[attr-defined]
@@ -365,7 +374,9 @@ class AuthService:
                 expires_at=now + timedelta(minutes=self.settings.password_reset_ttl_minutes),
             )
         )
-        self.audit.record("auth.password_reset_requested", user_id=user.id, entity_type="user", entity_id=user.id)
+        self.audit.record(
+            "auth.password_reset_requested", user_id=user.id, entity_type="user", entity_id=user.id
+        )
         self.db.commit()
         self.mailer.send(self.emails.password_reset(user, raw))
 
@@ -385,13 +396,14 @@ class AuthService:
         now = self.clock.now()
         if token is None or token.used_at is not None or token.expires_at <= now:
             raise InvalidToken
-        user = self.db.get(User, token.user_id)
-        assert user is not None
+        user = expect(self.db.get(User, token.user_id))
         self._validate_new_password(user, password, password_confirm)
         token.used_at = now
         user.password_hash = hash_password(password)
         self._revoke_all(user.id, now)
-        self.audit.record("auth.password_reset", user_id=user.id, entity_type="user", entity_id=user.id)
+        self.audit.record(
+            "auth.password_reset", user_id=user.id, entity_type="user", entity_id=user.id
+        )
         self.db.commit()
         self.mailer.send(self.emails.password_changed(user))
 
@@ -401,7 +413,7 @@ class AuthService:
         if problems:
             errors["password"] = " ".join(problems)
         if password != confirm:
-            errors["password_confirm"] = "As senhas não conferem."
+            errors["password_confirm"] = "As senhas não conferem."  # noqa: S105 - mensagem, não segredo
         if errors:
             raise ValidationFailed("Revise os campos destacados.", field_errors=errors)
 
@@ -410,12 +422,16 @@ class AuthService:
         self.limiter.hit(ratelimit.SENSITIVE_ACCOUNT, str(user.id))
         if not verify_password(user.password_hash, password):
             self.audit.record_independent("auth.reauth_failed", user_id=user.id)
-            raise ValidationFailed("Senha atual incorreta.", field_errors={field: "Senha incorreta"})
+            raise ValidationFailed(
+                "Senha atual incorreta.", field_errors={field: "Senha incorreta"}
+            )
 
     def change_name(self, user: User, full_name: str) -> None:
         name = clean_text(full_name, max_len=120)
         if len(name) < 2:
-            raise ValidationFailed("Informe seu nome completo.", field_errors={"full_name": "Obrigatório"})
+            raise ValidationFailed(
+                "Informe seu nome completo.", field_errors={"full_name": "Obrigatório"}
+            )
         before = user.full_name
         user.full_name = name
         self.audit.record(
@@ -443,7 +459,9 @@ class AuthService:
             )
             .values(revoked_at=self.clock.now())
         )
-        self.audit.record("auth.password_changed", user_id=user.id, entity_type="user", entity_id=user.id)
+        self.audit.record(
+            "auth.password_changed", user_id=user.id, entity_type="user", entity_id=user.id
+        )
         self.db.commit()
         self.mailer.send(self.emails.password_changed(user))
 
@@ -451,9 +469,13 @@ class AuthService:
         self._require_password(user, password, field="password")
         normalized = normalize_email(new_email)
         if normalized == user.email:
-            raise ValidationFailed("Informe um e-mail diferente do atual.", field_errors={"email": "Igual ao atual"})
+            raise ValidationFailed(
+                "Informe um e-mail diferente do atual.", field_errors={"email": "Igual ao atual"}
+            )
         token = self._issue_email_token(user, EmailTokenPurpose.CHANGE_EMAIL, new_email=normalized)
-        self.audit.record("user.email_change_requested", user_id=user.id, entity_type="user", entity_id=user.id)
+        self.audit.record(
+            "user.email_change_requested", user_id=user.id, entity_type="user", entity_id=user.id
+        )
         self.db.commit()
         # Sempre enviamos ao novo endereço; se já estiver em uso, a confirmação falhará.
         self.mailer.send(self.emails.confirm_email_change(user, normalized, token))
@@ -461,8 +483,9 @@ class AuthService:
 
     def confirm_email_change(self, raw_token: str) -> User:
         token = self._consume_email_token(raw_token, EmailTokenPurpose.CHANGE_EMAIL)
-        user = self.db.get(User, token.user_id)
-        assert user is not None and token.new_email
+        user = expect(self.db.get(User, token.user_id))
+        if not token.new_email:
+            raise InvalidToken
         if self._find_user_by_email(token.new_email) is not None:
             self.db.commit()  # token consumido
             raise InvalidToken
@@ -479,7 +502,9 @@ class AuthService:
         self.db.commit()
         return user
 
-    def delete_account(self, auth: AuthenticatedSession, password: str, email_confirmation: str) -> None:
+    def delete_account(
+        self, auth: AuthenticatedSession, password: str, email_confirmation: str
+    ) -> None:
         """Exclusão definitiva com confirmação reforçada (senha + digitação do e-mail)."""
         user = auth.user
         self._require_password(user, password, field="password")

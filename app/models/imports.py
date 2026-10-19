@@ -47,7 +47,9 @@ class ImportBatch(TimestampMixin, Base):
     __tablename__ = "import_batches"
     __table_args__ = (
         ForeignKeyConstraint(
-            ["account_id", "user_id"], ["accounts.id", "accounts.user_id"], name="fk_import_batches_account"
+            ["account_id", "user_id"],
+            ["accounts.id", "accounts.user_id"],
+            name="fk_import_batches_account",
         ),
         Index("ix_import_batches_user_created", "user_id", "created_at"),
     )
@@ -87,7 +89,9 @@ class ImportRow(Base):
     batch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("import_batches.id", ondelete="CASCADE"))
     row_number: Mapped[int] = mapped_column(Integer)
     raw: Mapped[list[str]] = mapped_column(JSONB)
-    status: Mapped[ImportRowStatus | None] = mapped_column(str_enum(ImportRowStatus, "import_row_status"))
+    status: Mapped[ImportRowStatus | None] = mapped_column(
+        str_enum(ImportRowStatus, "import_row_status")
+    )
     occurred_on: Mapped[date | None] = mapped_column(Date)
     description: Mapped[str | None] = mapped_column(String(140))
     amount_cents: Mapped[int | None]

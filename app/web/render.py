@@ -30,7 +30,9 @@ def _sign(payload: str) -> str:
 
 
 def set_flash(response: Response, message: str, kind: str = "success") -> None:
-    payload = base64.urlsafe_b64encode(json.dumps({"m": message[:300], "k": kind}).encode()).decode()
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"m": message[:300], "k": kind}).encode()
+    ).decode()
     response.set_cookie(
         FLASH_COOKIE,
         f"{payload}.{_sign(payload)}",
@@ -83,13 +85,17 @@ def page(
         "path": request.url.path,
     }
     ctx.update(context or {})
-    response: HTMLResponse = _render(request, template, ctx, status_code=status_code, headers=headers)
+    response: HTMLResponse = _render(
+        request, template, ctx, status_code=status_code, headers=headers
+    )
     if flash:
         response.delete_cookie(FLASH_COOKIE)
     return response
 
 
-def redirect(request: Request, url: str, *, message: str | None = None, kind: str = "success") -> Response:
+def redirect(
+    request: Request, url: str, *, message: str | None = None, kind: str = "success"
+) -> Response:
     """Redireciona (303). Em requisições HTMX usa HX-Redirect para navegação completa."""
     response: Response
     if is_htmx(request):
@@ -102,4 +108,6 @@ def redirect(request: Request, url: str, *, message: str | None = None, kind: st
 
 
 def toast_header(message: str, kind: str = "success") -> dict[str, str]:
-    return {"HX-Trigger": json.dumps({"toast": {"message": message, "kind": kind}}, ensure_ascii=True)}
+    return {
+        "HX-Trigger": json.dumps({"toast": {"message": message, "kind": kind}}, ensure_ascii=True)
+    }

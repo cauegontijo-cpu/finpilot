@@ -60,7 +60,10 @@ def run_once(maker: sessionmaker[Session] | None = None, clock: Clock | None = N
                     db.scalars(
                         select(RecurrenceRule.id).where(
                             RecurrenceRule.status == RecurrenceStatus.ACTIVE,
-                            or_(RecurrenceRule.generated_until.is_(None), RecurrenceRule.generated_until < until),
+                            or_(
+                                RecurrenceRule.generated_until.is_(None),
+                                RecurrenceRule.generated_until < until,
+                            ),
                         )
                     )
                 )
@@ -68,11 +71,15 @@ def run_once(maker: sessionmaker[Session] | None = None, clock: Clock | None = N
                 with maker() as db:
                     try:
                         rule = db.scalars(
-                            select(RecurrenceRule).where(RecurrenceRule.id == rule_id).with_for_update(skip_locked=True)
+                            select(RecurrenceRule)
+                            .where(RecurrenceRule.id == rule_id)
+                            .with_for_update(skip_locked=True)
                         ).one_or_none()
                         if rule is None:
                             continue
-                        service = RecurrenceService(db, clock, AuditService(db, SYSTEM_META), horizon_days)
+                        service = RecurrenceService(
+                            db, clock, AuditService(db, SYSTEM_META), horizon_days
+                        )
                         result = service.generate(rule, until)
                         db.commit()
                         report.rules += 1
@@ -80,14 +87,21 @@ def run_once(maker: sessionmaker[Session] | None = None, clock: Clock | None = N
                         report.settled += result.settled
                     except SQLAlchemyError:
                         db.rollback()
-                        logger.exception("falha ao gerar ocorrências", extra={"recurrence_id": str(rule_id)})
+                        logger.exception(
+                            "falha ao gerar ocorrências", extra={"recurrence_id": str(rule_id)}
+                        )
                         report.failures.append(str(rule_id))
         finally:
             lock_session.execute(text(f"SELECT pg_advisory_unlock({ADVISORY_LOCK_KEY})"))
             lock_session.commit()
     logger.info(
         "job de recorrências concluído",
-        extra={"rules": report.rules, "created": report.created, "settled": report.settled, "failures": len(report.failures)},
+        extra={
+            "rules": report.rules,
+            "created": report.created,
+            "settled": report.settled,
+            "failures": len(report.failures),
+        },
     )
     return report
 

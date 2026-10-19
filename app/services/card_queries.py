@@ -65,7 +65,9 @@ def statement_balances(
         .subquery()
     )
     paid = (
-        select(CardPayment.statement_id.label("sid"), func.sum(CardPayment.amount_cents).label("paid"))
+        select(
+            CardPayment.statement_id.label("sid"), func.sum(CardPayment.amount_cents).label("paid")
+        )
         .where(CardPayment.user_id == user_id, CardPayment.status == "active")
         .group_by(CardPayment.statement_id)
         .subquery()
@@ -124,10 +126,10 @@ def card_debt(db: Session, user_id: uuid.UUID, card_id: uuid.UUID | None = None)
         CardPayment.user_id == user_id, CardPayment.status == "active"
     )
     if card_id:
-        charges_stmt = charges_stmt.join(CardStatement, CardStatement.id == CardInstallment.statement_id).where(
-            CardStatement.card_id == card_id
-        )
-        paid_stmt = paid_stmt.join(CardStatement, CardStatement.id == CardPayment.statement_id).where(
-            CardStatement.card_id == card_id
-        )
+        charges_stmt = charges_stmt.join(
+            CardStatement, CardStatement.id == CardInstallment.statement_id
+        ).where(CardStatement.card_id == card_id)
+        paid_stmt = paid_stmt.join(
+            CardStatement, CardStatement.id == CardPayment.statement_id
+        ).where(CardStatement.card_id == card_id)
     return int(db.scalar(charges_stmt) or 0) - int(db.scalar(paid_stmt) or 0)

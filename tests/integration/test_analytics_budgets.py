@@ -25,7 +25,9 @@ def budgets(db: Session) -> BudgetService:
     return BudgetService(db, Clock(), audit(db))
 
 
-def test_monthly_competence_excludes_transfers_and_separates_planned(db: Session, user: Any) -> None:
+def test_monthly_competence_excludes_transfers_and_separates_planned(
+    db: Session, user: Any
+) -> None:
     a = make_account(db, user, name="A", initial=500_000)
     b = make_account(db, user, name="B", initial=0)
     make_tx(db, user, a, 300_000, tx_type=TransactionType.INCOME, when=date(2026, 10, 5))
@@ -48,7 +50,10 @@ def test_category_breakdown_and_account_scope(db: Session, user: Any) -> None:
     make_tx(db, user, b, 3_000, category_name="Transporte")
     service = AnalyticsService(db)
     all_cats = service.expenses_by_category(user.id, OCT)
-    assert [(c.name, c.settled) for c in all_cats] == [("Transporte", 3_000), ("Alimentação", 1_000)]
+    assert [(c.name, c.settled) for c in all_cats] == [
+        ("Transporte", 3_000),
+        ("Alimentação", 1_000),
+    ]
     only_a = service.expenses_by_category(user.id, OCT, Scope(account_id=a.id))
     assert [(c.name, c.settled) for c in only_a] == [("Alimentação", 1_000)]
 
@@ -92,9 +97,19 @@ def test_budget_usage_levels_and_planned_separation(db: Session, user: Any) -> N
     service.create(user.id, leisure.id, OCT, 40_000)
     make_tx(db, user, account, 96_000, category_name="Alimentação")  # 80%
     make_tx(db, user, account, 10_000, category_name="Transporte")
-    make_tx(db, user, account, 30_000, category_name="Transporte", status=TransactionStatus.PLANNED, when=date(2026, 10, 30))
+    make_tx(
+        db,
+        user,
+        account,
+        30_000,
+        category_name="Transporte",
+        status=TransactionStatus.PLANNED,
+        when=date(2026, 10, 30),
+    )
     make_tx(db, user, account, 41_000, category_name="Lazer")  # 102,5%
-    make_tx(db, user, account, 99_000, category_name="Alimentação", when=date(2026, 9, 10))  # outro mês
+    make_tx(
+        db, user, account, 99_000, category_name="Alimentação", when=date(2026, 9, 10)
+    )  # outro mês
     overview = service.overview(user.id, OCT)
     by_name = {i.budget.category.name: i for i in overview.items}
     assert by_name["Alimentação"].level == "warning"  # RN034
@@ -142,14 +157,34 @@ def test_copy_budgets_from_previous_month(db: Session, user: Any) -> None:
 
 
 # ---------------------------------------------------------------- previsão
-def test_forecast_starts_from_realized_balance_and_finds_negative_day(db: Session, user: Any) -> None:
+def test_forecast_starts_from_realized_balance_and_finds_negative_day(
+    db: Session, user: Any
+) -> None:
     today = date(2026, 10, 15)
     a = make_account(db, user, name="A", initial=100_000)
     b = make_account(db, user, name="B", initial=0)
     make_tx(db, user, a, 80_000, when=date(2026, 10, 20), status=TransactionStatus.PLANNED)
-    make_tx(db, user, a, 50_000, when=date(2026, 10, 21), status=TransactionStatus.PLANNED, due=date(2026, 10, 25))
-    make_tx(db, user, a, 30_000, tx_type=TransactionType.INCOME, when=date(2026, 11, 5), status=TransactionStatus.PLANNED)
-    make_tx(db, user, a, 1_000, when=date(2026, 10, 1), status=TransactionStatus.PLANNED)  # atrasada
+    make_tx(
+        db,
+        user,
+        a,
+        50_000,
+        when=date(2026, 10, 21),
+        status=TransactionStatus.PLANNED,
+        due=date(2026, 10, 25),
+    )
+    make_tx(
+        db,
+        user,
+        a,
+        30_000,
+        tx_type=TransactionType.INCOME,
+        when=date(2026, 11, 5),
+        status=TransactionStatus.PLANNED,
+    )
+    make_tx(
+        db, user, a, 1_000, when=date(2026, 10, 1), status=TransactionStatus.PLANNED
+    )  # atrasada
     make_transfer(db, user, a, b, 5_000, when=date(2026, 10, 22), status=TransactionStatus.PLANNED)
     f = ForecastService(db).build(user.id, today, 30)
     assert f.starting_balance == 100_000  # RN071
@@ -171,20 +206,39 @@ def test_forecast_without_events_reports_uncertainty(db: Session, user: Any) -> 
 
 
 # ---------------------------------------------------------------- telas
-def test_dashboard_renders_with_data_and_charts(auth_client: TestClient, user: Any, db: Session) -> None:
+def test_dashboard_renders_with_data_and_charts(
+    auth_client: TestClient, user: Any, db: Session
+) -> None:
     account = make_account(db, user, initial=200_000)
     make_tx(db, user, account, 500_000, tx_type=TransactionType.INCOME, when=date(2026, 10, 5))
     make_tx(db, user, account, 120_000, when=date(2026, 10, 8))
-    make_tx(db, user, account, 30_000, when=Clock().today() + timedelta(days=10), status=TransactionStatus.PLANNED)
-    budgets(db).create(user.id, category(db, user, "Alimentação").id, Month.of(Clock().today()), 100_000)
+    make_tx(
+        db,
+        user,
+        account,
+        30_000,
+        when=Clock().today() + timedelta(days=10),
+        status=TransactionStatus.PLANNED,
+    )
+    budgets(db).create(
+        user.id, category(db, user, "Alimentação").id, Month.of(Clock().today()), 100_000
+    )
     response = auth_client.get(f"/app?month={Month.of(Clock().today()).iso()}")
     assert response.status_code == 200
     body = response.text
-    for chart_id in ["ch-income-expense-data", "ch-categories-data", "ch-balance-data", "ch-budgets-data", "ch-forecast-data"]:
+    for chart_id in [
+        "ch-income-expense-data",
+        "ch-categories-data",
+        "ch-balance-data",
+        "ch-budgets-data",
+        "ch-forecast-data",
+    ]:
         assert chart_id in body
     assert "Competência" in body and "Caixa" in body and "Projetado" in body
     assert 'type="application/json"' in body
-    partial = auth_client.get("/app?month=2026-10", headers={"HX-Request": "true", "HX-Target": "dashboard-content"})
+    partial = auth_client.get(
+        "/app?month=2026-10", headers={"HX-Request": "true", "HX-Target": "dashboard-content"}
+    )
     assert partial.status_code == 200 and "<html" not in partial.text
 
 
@@ -193,7 +247,9 @@ def test_dashboard_empty_state(auth_client: TestClient) -> None:
     assert "Seu painel ainda está vazio" in body
 
 
-def test_dashboard_ignores_other_users_account_filter(auth_client: TestClient, db: Session, other_user: Any, user: Any) -> None:
+def test_dashboard_ignores_other_users_account_filter(
+    auth_client: TestClient, db: Session, other_user: Any, user: Any
+) -> None:
     theirs = make_account(db, other_user, name="Do Bruno", initial=999_999)
     mine = make_account(db, user, initial=1_000)
     del mine
@@ -207,4 +263,3 @@ def test_forecast_and_budget_pages_render(auth_client: TestClient, user: Any, db
     assert auth_client.get("/app/previsao?dias=7").status_code == 200  # horizonte inválido → padrão
     assert auth_client.get("/app/orcamentos?month=2026-10").status_code == 200
     assert auth_client.get("/app/orcamentos/novo?month=2026-10").status_code == 200
-

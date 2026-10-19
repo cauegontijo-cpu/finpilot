@@ -22,9 +22,11 @@ target_metadata = Base.metadata
 
 
 def _url() -> str:
-    url = config.get_main_option("sqlalchemy.url") or os.environ.get(
-        "MIGRATOR_DATABASE_URL"
-    ) or os.environ.get("DATABASE_URL")
+    url = (
+        config.get_main_option("sqlalchemy.url")
+        or os.environ.get("MIGRATOR_DATABASE_URL")
+        or os.environ.get("DATABASE_URL")
+    )
     if not url:
         raise RuntimeError("Defina MIGRATOR_DATABASE_URL ou DATABASE_URL")
     return _sqlalchemy_url(url)
@@ -39,9 +41,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     engine = create_engine(_url(), poolclass=pool.NullPool)
     with engine.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata, compare_type=True
-        )
+        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
         with context.begin_transaction():
             context.run_migrations()
 

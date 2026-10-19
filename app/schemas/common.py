@@ -12,8 +12,12 @@ from app.models.finance import MAX_CENTS
 
 T = TypeVar("T")
 
-PositiveCents = Annotated[int, Field(gt=0, le=MAX_CENTS, description="Valor em centavos (ex.: 12345 = R$ 123,45)")]
-SignedCents = Annotated[int, Field(ge=-MAX_CENTS, le=MAX_CENTS, description="Valor em centavos, com sinal")]
+PositiveCents = Annotated[
+    int, Field(gt=0, le=MAX_CENTS, description="Valor em centavos (ex.: 12345 = R$ 123,45)")
+]
+SignedCents = Annotated[
+    int, Field(ge=-MAX_CENTS, le=MAX_CENTS, description="Valor em centavos, com sinal")
+]
 
 
 class InputModel(BaseModel):
@@ -36,7 +40,7 @@ class MoneyMixin(OutputModel):
         return cents_to_decimal(self.amount_cents)
 
 
-class PageOut(BaseModel, Generic[T]):
+class PageOut(BaseModel, Generic[T]):  # noqa: UP046 - forma suportada pelo Pydantic
     items: list[T]
     total: int
     page: int
