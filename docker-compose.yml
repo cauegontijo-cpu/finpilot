@@ -115,6 +115,8 @@ services:
     image: finpilot:dev
     pull_policy: never
     command: ["python", "-m", "app.jobs.scheduler"]
+    healthcheck:
+      disable: true  # não serve HTTP; o HEALTHCHECK da imagem é para o web
     environment: *app-env
     depends_on:
       migrate:

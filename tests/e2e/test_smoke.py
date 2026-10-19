@@ -26,7 +26,7 @@ pytestmark = [
 ]
 
 
-def _verification_link(email: str, timeout: float = 15) -> str:
+def _link_from_mail(email: str, path: str, timeout: float = 15) -> str:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         with urllib.request.urlopen(
@@ -38,11 +38,11 @@ def _verification_link(email: str, timeout: float = 15) -> str:
                 f"{MAILPIT_URL}/api/v1/message/{messages[0]['ID']}", timeout=5
             ) as resp:
                 body = json.loads(resp.read())["Text"]
-            match = re.search(r"(https?://\S+/verificar-email\?token=[A-Za-z0-9_-]+)", body)
+            match = re.search(r"(https?://\S+" + re.escape(path) + r"\?token=[A-Za-z0-9_-]+)", body)
             if match:
                 return match.group(1)
         time.sleep(0.5)
-    raise AssertionError("e-mail de verificação não chegou ao Mailpit")
+    raise AssertionError(f"e-mail com {path} não chegou ao Mailpit")
 
 
 def test_register_verify_login_and_register_expense() -> None:
@@ -68,7 +68,9 @@ def test_register_verify_login_and_register_expense() -> None:
         page.click("button[type=submit]")
         expect(page.get_by_text("Verifique sua caixa de entrada")).to_be_visible()
 
-        link = _verification_link(email).replace("http://localhost:8000", BASE_URL or "")
+        link = _link_from_mail(email, "/verificar-email").replace(
+            "http://localhost:8000", BASE_URL or ""
+        )
         page.goto(link)
         page.click("button[type=submit]")
         expect(page.get_by_text("E-mail confirmado")).to_be_visible()
@@ -107,3 +109,66 @@ def test_register_verify_login_and_register_expense() -> None:
         expect(page.get_by_text("R$ 876,55").first).to_be_visible()
         browser.close()
     assert not console_errors, console_errors
+
+
+def test_password_reset_via_smtp_revokes_session_and_token_is_single_use() -> None:
+    from playwright.sync_api import expect, sync_playwright
+
+    email = f"e2e-reset-{uuid.uuid4().hex[:8]}@example.com"
+    old_password = "Senha-Antiga-" + uuid.uuid4().hex[:8]
+    new_password = "Senha-Nova-" + uuid.uuid4().hex[:8]
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(locale="pt-BR")
+        page.goto(f"{BASE_URL}/cadastro")
+        page.fill("#f-full_name", "Teste Recuperação")
+        page.fill("#f-email", email)
+        page.fill("#f-password", old_password)
+        page.fill("#f-password_confirm", old_password)
+        page.check("input[name=accept_privacy]")
+        page.click("button[type=submit]")
+        page.goto(_link_from_mail(email, "/verificar-email"))
+        page.click("button[type=submit]")
+
+        page.goto(f"{BASE_URL}/recuperar-senha")
+        page.fill("#f-email", email)
+        page.click("button[type=submit]")
+        expect(page.get_by_text("Se houver uma conta com esse e-mail")).to_be_visible()
+        reset_link = _link_from_mail_newest(email, "/redefinir-senha")
+        page.goto(reset_link)
+        page.fill("#f-password", new_password)
+        page.fill("#f-password_confirm", new_password)
+        page.click("button[type=submit]")
+        expect(page.get_by_text("Senha redefinida")).to_be_visible()
+
+        page.goto(reset_link)  # token de uso único
+        expect(page.get_by_text("Link inválido")).to_be_visible()
+
+        page.goto(f"{BASE_URL}/login")
+        page.fill("#f-email", email)
+        page.fill("#f-password", old_password)
+        page.click("button[type=submit]")
+        expect(page.get_by_text("E-mail ou senha inválidos.")).to_be_visible()
+        page.fill("#f-password", new_password)
+        page.click("button[type=submit]")
+        page.wait_for_url("**/app")
+        browser.close()
+
+
+def _link_from_mail_newest(email: str, path: str, timeout: float = 15) -> str:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with urllib.request.urlopen(
+            f"{MAILPIT_URL}/api/v1/search?query=to:{email}", timeout=5
+        ) as resp:
+            messages = json.loads(resp.read())["messages"]
+        for message in messages:  # mais recente primeiro
+            with urllib.request.urlopen(
+                f"{MAILPIT_URL}/api/v1/message/{message['ID']}", timeout=5
+            ) as resp:
+                body = json.loads(resp.read())["Text"]
+            match = re.search(r"(https?://\S+" + re.escape(path) + r"\?token=[A-Za-z0-9_-]+)", body)
+            if match:
+                return match.group(1)
+        time.sleep(0.5)
+    raise AssertionError(f"e-mail com {path} não chegou ao Mailpit")

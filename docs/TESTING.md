@@ -29,14 +29,15 @@ E2E_BASE_URL=http://localhost:8000 MAILPIT_URL=http://localhost:8025 uv run pyte
 | `tests/integration` | fluxos de autenticação e conta, regras do núcleo financeiro, orçamentos/analytics/previsão, metas, recorrências, importação, relatórios/exportações, cartões, API REST, telas HTMX, logging | 141 |
 | `tests/security` | CSRF (inclusive token lido do HTML), rate limiting, expiração de sessões e tokens, cabeçalhos, open redirect, IDOR/BOLA em web e API, mass assignment, SQL injection, XSS, varredura de rotas protegidas | 39 |
 | `tests/concurrency` | despesas simultâneas, transferências opostas, chave de idempotência repetida, confirmação duplicada de importação, gerador de recorrências simultâneo, pagamento duplicado de fatura, compras simultâneas contra o limite | 8 |
-| `tests/e2e` | Playwright: cadastro → verificação via Mailpit → login → conta → despesa → dashboard, sem erros de console | 1 |
+| `tests/e2e` | Playwright: (1) cadastro → verificação via Mailpit → login → conta → despesa → dashboard, sem erros de console; (2) recuperação de senha por SMTP real, token de uso único e senha antiga invalidada | 2 |
 
 ## Resultado da última execução local
 
 Executado em 2026-10-19 (Windows 11, Python 3.12.7, PostgreSQL 16 em Docker):
 
-* `uv run pytest` → **255 passed, 1 skipped** (o e2e é ignorado sem `E2E_BASE_URL`).
-* `pytest tests/e2e -m e2e` contra a stack Docker → **1 passed**.
+* `uv run pytest` → **255 passed, 2 skipped** (os e2e são ignorados sem `E2E_BASE_URL`).
+* `pytest tests/e2e -m e2e` contra a stack Docker → **2 passed** (executado duas vezes seguidas; os contadores de rate limit do Redis de desenvolvimento são zerados antes de cada teste).
+* Varredura automática de 308 páginas, links e exportações autenticados do usuário demo: todas responderam 200.
 * Cobertura (linhas): `app/services` **90,6%**, `app/domain` **96,1%**, total `app` **85,0%**.
 * `ruff check` e `ruff format --check`: sem pendências · `mypy --strict`: sem erros (89 arquivos).
 

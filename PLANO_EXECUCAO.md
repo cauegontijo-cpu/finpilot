@@ -97,7 +97,44 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 Todas as fases concluídas e validadas: 255 testes + 1 e2e (Playwright) aprovados; ruff e mypy --strict limpos;
 imagem Docker validada em modo produção; backup/restore testados; documentação em README.md e docs/.
 
-## 4. Limitações conhecidas / bloqueios
+## 4. Critérios de aceitação final (seção 31) — verificados em 2026-10-19
+
+| Critério | Status | Evidência |
+|---|---|---|
+| A aplicação inicia corretamente | ✅ | `docker compose up -d` → web `healthy`; `/health/ready` ok (banco + Redis); modo produção validado em container |
+| O banco é criado pelas migrations | ✅ | `tests/conftest.py` recria o schema via Alembic a cada execução; upgrade → downgrade → upgrade em banco vazio |
+| Usuários criam contas e autenticam | ✅ | `integration/test_auth_flow.py`; e2e `test_register_verify_login_and_register_expense` |
+| Recuperação de senha funciona no ambiente configurado | ✅ | e2e `test_password_reset_via_smtp_revokes_session_and_token_is_single_use` (SMTP real → Mailpit) |
+| Isolamento de dados testado | ✅ | `security/test_access_control.py` (web), `integration/test_api.py` (API), relatórios, importação e cartões |
+| Contas financeiras funcionam | ✅ | `integration/test_ledger_rules.py`, `test_finance_web.py` |
+| Receitas e despesas alteram o saldo corretamente | ✅ | `test_settled_income_and_expense_change_balance` + reconciliação do saldo com o histórico |
+| Transferências são atômicas | ✅ | `test_transfer_insufficient_funds_rolls_back_both_legs`, concorrência de transferências opostas |
+| Estornos mantêm consistência | ✅ | `test_cancel_settled_reverses_and_keeps_history`, `test_transfer_cancel_reverts_both_sides`, estorno de cartão |
+| Categorias funcionam | ✅ | `integration/test_categories.py` |
+| Orçamentos com cálculos corretos | ✅ | `integration/test_analytics_budgets.py` (80/100%, previsto separado, estorno, parcelas de cartão) |
+| Dashboard com dados reais | ✅ | `test_dashboard_renders_with_data_and_charts`; screenshots reais com o seed |
+| Filtros do dashboard funcionam | ✅ | parcial HTMX por mês/conta/categoria testado; filtro de conta alheia ignorado/404 |
+| Metas funcionam | ✅ | `integration/test_goals_recurrences.py` |
+| Recorrências não geram duplicatas | ✅ | `test_generation_is_idempotent`, `concurrency::test_concurrent_recurrence_jobs_never_duplicate` |
+| Importação CSV com prévia e validação | ✅ | `integration/test_imports_reports.py` (inclui fluxo web completo e confirmação concorrente) |
+| Relatórios funcionam | ✅ | 8 relatórios em HTML/CSV/PDF/impressão testados; exportações percorridas pela varredura |
+| Previsão de caixa consistente | ✅ | `test_forecast_*` (saldo realizado, vencimento, transferências, faturas, incerteza) |
+| Cartões e parcelamentos funcionam | ✅ | `integration/test_cards.py` (14 testes) + concorrência de pagamento e limite |
+| Pagamento de fatura não duplica despesa | ✅ | `test_payment_reduces_cash_not_expense_and_frees_limit` |
+| Operações importantes auditadas | ✅ | eventos de login, transação, estorno, transferência, importação, pagamento, orçamento e conta; trigger append-only testado |
+| Principais testes automatizados passam | ✅ | 255 passed (+2 e2e passed); ruff e mypy --strict limpos |
+| A aplicação é responsiva | ✅ | screenshots mobile (390 px) de dashboard e transações; sidebar em drawer; filtros recolhíveis |
+| Docker Compose inicia os serviços | ✅ | postgres, db-test, redis, mailpit, migrate (exit 0), web (healthy), scheduler |
+| Documentação suficiente para terceiros | ✅ | README + docs/ (ARCHITECTURE, DATA_MODEL, BUSINESS_RULES, SECURITY, API, DEPLOYMENT, TESTING, ADRs) |
+| Sem credenciais reais no repositório | ✅ | `.env` fora do Git; varredura de segredos e de valores do `.env` local no repositório: nenhum encontrado |
+| Sem funcionalidades obrigatórias simuladas | ✅ | varredura de 308 páginas/links autenticados sem nenhum erro; único conteúdo ilustrativo (card da landing) é rotulado como tal |
+
+### Itens incompletos (fora do alcance deste ambiente)
+
+- **CI no GitHub Actions:** workflow criado (`.github/workflows/ci.yml`), mas não executado — o repositório ainda não foi publicado. As mesmas etapas foram executadas localmente.
+- **Deploy em servidor Linux com HTTPS real:** `docker-compose.prod.yml` + Caddy prontos e a imagem validada em modo produção localmente; falta um servidor e um domínio para o certificado Let's Encrypt.
+
+## 5. Limitações conhecidas / bloqueios
 
 - Tailwind standalone (Bun) falha com `-o` em caminhos não ASCII ("ç") → compilação via stdout.
 - Docker Compose (bake) falha ao construir vários serviços em caminho não ASCII → imagem única `finpilot:dev`.

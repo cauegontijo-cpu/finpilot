@@ -134,7 +134,7 @@ make cov         # falha abaixo de 80% em services/domain
 make check       # lint + mypy --strict + testes (o mesmo que o CI)
 ```
 
-Última execução local: **255 testes aprovados** (mais 1 ponta a ponta com Playwright, executado à parte e aprovado). Cobertura de **90,6%** em `app/services` e **96,1%** em `app/domain`. Detalhes em [docs/TESTING.md](docs/TESTING.md).
+Última execução local: **255 testes aprovados** (mais 2 ponta a ponta com Playwright, executados à parte e aprovados). Cobertura de **90,6%** em `app/services` e **96,1%** em `app/domain`. Detalhes em [docs/TESTING.md](docs/TESTING.md).
 
 ## Documentação da API
 

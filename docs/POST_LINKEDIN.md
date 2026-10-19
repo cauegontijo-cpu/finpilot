@@ -69,10 +69,10 @@ As 77 regras estão rastreadas até o código e o teste correspondentes em `docs
 > 🔒 **Segurança aplicada:** Argon2id, sessões server-side, CSRF em formulários, HTMX e API, CSP estrita sem JavaScript inline, rate limiting e auditoria imutável. Cada controle tem teste automatizado.
 > ⚖️ **Consistência financeira:** valores em centavos, locks no banco e idempotência. Testes com operações simultâneas garantem que o saldo nunca fica inconsistente.
 > 💳 **Regras de verdade:** a parcela é despesa na competência da fatura e o pagamento é só saída de caixa. Assim não há dupla contagem.
-> ✅ **Qualidade:** 256 testes automatizados (unitários, integração com PostgreSQL real, segurança, concorrência e ponta a ponta com Playwright), mypy em modo estrito e CI no GitHub Actions.
+> ✅ **Qualidade:** 257 testes automatizados (unitários, integração com PostgreSQL real, segurança, concorrência e ponta a ponta com Playwright), mypy em modo estrito e CI no GitHub Actions.
 >
 > Código, arquitetura e decisões técnicas no GitHub: [link do repositório]
 >
 > #Python #FastAPI #PostgreSQL #HTMX #DesenvolvimentoWeb #SegurançaDaInformação #FullStack
 
-*Os números citados (256 testes; cobertura de 90,6% em services e 96,1% em domain) vêm da execução local registrada em `docs/TESTING.md`. Atualize-os se o projeto mudar.*
+*Os números citados (257 testes; cobertura de 90,6% em services e 96,1% em domain) vêm da execução local registrada em `docs/TESTING.md`. Atualize-os se o projeto mudar.*

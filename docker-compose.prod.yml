@@ -81,6 +81,8 @@ services:
     image: ${IMAGE:-finpilot:latest}
     build: .
     command: ["python", "-m", "app.jobs.scheduler"]
+    healthcheck:
+      disable: true  # não serve HTTP; o HEALTHCHECK da imagem é para o web
     restart: unless-stopped
     environment: *app-env
     depends_on:

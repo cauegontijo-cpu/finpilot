@@ -15,7 +15,7 @@
     <span class="htmx-indicator text-xs text-muted" aria-hidden="true">Atualizando…</span>
   </div>
 
-  <section class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totalizadores do filtro">
+  <section class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" aria-label="Totalizadores do filtro">
     <div class="card card-pad"><p class="text-xs text-muted">Receitas efetivadas {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold text-positive">{{ totals.income_settled|brl }}</p></div>
     <div class="card card-pad"><p class="text-xs text-muted">Despesas efetivadas {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold text-negative">{{ totals.expense_settled|brl }}</p></div>
     <div class="card card-pad"><p class="text-xs text-muted">Resultado efetivado</p><p class="num mt-1 text-xl font-bold {{ 'text-negative' if totals.net_settled < 0 else 'text-fg' }}">{{ totals.net_settled|brl(True) }}</p></div>

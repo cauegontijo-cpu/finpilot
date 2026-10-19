@@ -17,6 +17,9 @@
       <input id="flt-q" name="q" value="{{ raw.q or '' }}" class="input pl-9" placeholder="Ex.: mercado" maxlength="100" type="search">
     </div>
   </div>
+  <details class="group sm:col-span-2 xl:col-span-4" open data-collapse-mobile>
+    <summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary sm:hidden">{{ icon("filter") }} Mais filtros {{ icon("chevron-down", "size-4 transition group-open:rotate-180") }}</summary>
+    <div class="mt-3 grid gap-3 sm:mt-0 sm:grid-cols-2 xl:grid-cols-4">
   <div>
     <label class="label" for="flt-month">Competência</label>
     <input id="flt-month" name="month" type="month" class="input" value="{{ month.iso() if month else '' }}">
@@ -51,6 +54,8 @@
       </select>
     </div>
   </div>
+    </div>
+  </details>
   <div class="flex flex-wrap items-end gap-3 sm:col-span-2 xl:col-span-4">
     <div>
       <label class="label" for="flt-sort">Ordenar por</label>

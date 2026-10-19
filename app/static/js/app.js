@@ -269,6 +269,10 @@
 
   function initAll(root) { syncToggles(root); initCharts(root); }
   document.addEventListener("DOMContentLoaded", () => {
+    // Filtros avançados recolhidos em telas pequenas (abertos no desktop).
+    if (window.matchMedia("(max-width: 639px)").matches) {
+      document.querySelectorAll("details[data-collapse-mobile]").forEach((d) => d.removeAttribute("open"));
+    }
     initAll(document);
     const flash = document.getElementById("flash");
     if (flash) toast(flash.content.textContent.trim(), flash.dataset.kind);
