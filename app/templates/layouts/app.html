@@ -24,8 +24,9 @@
       {% endfor %}
     </nav>
     <div class="border-t border-white/10 p-4">
-      <a href="/app/importacoes" class="nav-link {% if path.startswith('/app/importacoes') %}bg-white/12 text-white{% endif %}">{{ icon("upload", "size-[18px]") }} Importar extrato</a>
-      <a href="/app/auditoria" class="nav-link {% if path.startswith('/app/auditoria') %}bg-white/12 text-white{% endif %}">{{ icon("history", "size-[18px]") }} Auditoria</a>
+      <a href="/app/transferencias" class="nav-link" {% if path.startswith('/app/transferencias') %}aria-current="page"{% endif %}>{{ icon("arrow-left-right", "size-[18px]") }} Transferências</a>
+      <a href="/app/importacoes" class="nav-link" {% if path.startswith('/app/importacoes') %}aria-current="page"{% endif %}>{{ icon("upload", "size-[18px]") }} Importar extrato</a>
+      <a href="/app/auditoria" class="nav-link" {% if path.startswith('/app/auditoria') %}aria-current="page"{% endif %}>{{ icon("history", "size-[18px]") }} Auditoria</a>
     </div>
   </aside>
   <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/50 lg:hidden" hidden></div>

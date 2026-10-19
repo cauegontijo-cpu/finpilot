@@ -1,0 +1,25 @@
+{% from "components/ui.html" import field, money_field, select, checkbox, alert, csrf with context %}
+{% from "components/pickers.html" import color_picker, icon_picker with context %}
+{% set action = "/app/contas/" ~ account.id if account else "/app/contas" %}
+{% with title=("Editar conta" if account else "Nova conta"), subtitle="Contas de disponibilidade imediata: corrente, poupança, carteira ou digital.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {{ field("name", "Nome da conta", value=values.name, errors=errors, required=True, maxlength=60, placeholder="Ex.: Conta Itaú") }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ select("type", "Tipo", type_options, selected=values.type, errors=errors, required=True) }}
+    {{ field("institution", "Instituição (opcional)", value=values.institution, errors=errors, maxlength=80) }}
+  </div>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("initial_balance", "Saldo inicial", value=values.initial_balance, errors=errors, hint="Não é contabilizado como receita.", required=False) }}
+    {{ field("start_date", "Data de início", value=values.start_date, type="date", errors=errors, required=True) }}
+  </div>
+  {% if account %}<p class="-mt-2 text-xs text-warning">Alterar o saldo inicial ajusta o saldo atual pela diferença e fica registrado na auditoria.</p>{% endif %}
+  {{ checkbox("allow_negative", "Permitir saldo negativo", checked=values.allow_negative in ("true", "on", True), errors=errors, hint="Se desmarcado, operações que excedam o saldo serão recusadas.") }}
+  {{ color_picker(palette, values.color or "#2563eb") }}
+  {{ icon_picker(icons, values.icon or "wallet") }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/contas" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

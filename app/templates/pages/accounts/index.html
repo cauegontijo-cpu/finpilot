@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import empty_state, csrf with context %}
+{% block title %}Contas{% endblock %}
+{% block page_title %}Contas{% endblock %}
+{% block header_actions %}
+<a href="/app/contas/nova" hx-get="/app/contas/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova conta</span></a>
+{% endblock %}
+{% block content %}
+<div id="accounts-page" hx-get="/app/contas" hx-trigger="refresh from:body" hx-select="#accounts-page" hx-target="this" hx-swap="outerHTML">
+  <section class="card card-pad mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <p class="text-sm text-muted">Saldo total disponível <span class="regime ml-1">Saldo realizado</span></p>
+      <p class="num mt-1 text-3xl font-bold tracking-tight {{ 'text-negative' if total < 0 }}">{{ total|brl }}</p>
+    </div>
+    <p class="max-w-md text-sm text-muted">Soma dos saldos das contas ativas, considerando apenas lançamentos efetivados. Limites de cartão não entram neste valor.</p>
+  </section>
+
+  {% if not active and not archived %}
+  <div class="card">{{ empty_state("Nenhuma conta cadastrada", "Cadastre sua primeira conta para começar a registrar receitas, despesas e transferências.", "wallet", "/app/contas/nova", "Nova conta", dialog_id="drawer") }}</div>
+  {% else %}
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {% for a in active %}
+    <article class="card card-pad flex flex-col">
+      <div class="flex items-start gap-3">
+        <span class="inline-flex size-11 items-center justify-center rounded-xl text-white {{ color_class(a.color) }}">{{ icon(a.icon, "size-5") }}</span>
+        <div class="min-w-0 flex-1">
+          <h2 class="truncate font-semibold">{{ a.name }}</h2>
+          <p class="truncate text-xs text-muted">{{ type_labels[a.type] }}{% if a.institution %} · {{ a.institution }}{% endif %}</p>
+        </div>
+        <div class="relative">
+          <button type="button" class="btn-icon" data-menu-trigger aria-controls="acc-menu-{{ a.id }}" aria-expanded="false" aria-label="Ações da conta {{ a.name }}">{{ icon("ellipsis") }}</button>
+          <div id="acc-menu-{{ a.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-48 rounded-xl border border-line bg-surface p-1 shadow-lift">
+            <a href="/app/contas/{{ a.id }}/editar" hx-get="/app/contas/{{ a.id }}/editar" hx-target="#drawer-body" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("pencil") }} Editar</a>
+            <a href="/app/transacoes?account_id={{ a.id }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("list") }} Ver lançamentos</a>
+            <form method="post" action="/app/contas/{{ a.id }}/arquivar" hx-post="/app/contas/{{ a.id }}/arquivar">{{ csrf() }}<button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3" data-confirm="Arquivar a conta “{{ a.name }}”? O histórico será mantido.">{{ icon("archive") }} Arquivar</button></form>
+            <form method="post" action="/app/contas/{{ a.id }}/excluir" hx-post="/app/contas/{{ a.id }}/excluir">{{ csrf() }}<button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-negative hover:bg-negative-soft" data-confirm="Excluir a conta “{{ a.name }}”? Só é possível para contas sem histórico." data-confirm-type="{{ a.name }}">{{ icon("trash-2") }} Excluir</button></form>
+          </div>
+        </div>
+      </div>
+      <p class="num mt-6 text-2xl font-bold tracking-tight {{ 'text-negative' if a.current_balance_cents < 0 }}">{{ a.current_balance_cents|brl }}</p>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="badge-neutral">Desde {{ a.start_date|date_br }}</span>
+        {% if a.allow_negative %}<span class="badge-warning">Aceita saldo negativo</span>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% if archived %}
+  <section class="mt-10">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Arquivadas</h2>
+    <div class="card divide-y divide-line">
+      {% for a in archived %}
+      <div class="flex flex-wrap items-center gap-3 px-5 py-3">
+        <span class="inline-flex size-8 items-center justify-center rounded-lg bg-surface-3 text-muted">{{ icon(a.icon) }}</span>
+        <span class="flex-1 text-sm font-medium">{{ a.name }}</span>
+        <span class="num text-sm text-muted">{{ a.current_balance_cents|brl }}</span>
+        <form method="post" action="/app/contas/{{ a.id }}/reativar" hx-post="/app/contas/{{ a.id }}/reativar">{{ csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ icon("archive-restore") }} Reativar</button></form>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

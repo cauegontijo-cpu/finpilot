@@ -1,5 +1,5 @@
 {% extends "layouts/auth.html" %}
-{% from "components/ui.html" import csrf %}
+{% from "components/ui.html" import csrf with context %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <span class="inline-flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">{{ icon("shield-check", "size-6") }}</span>

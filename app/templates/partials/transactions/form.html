@@ -1,0 +1,76 @@
+{% from "components/ui.html" import field, money_field, alert, csrf, idem, textarea with context %}
+{% set action = "/app/transacoes/" ~ tx.id if tx else "/app/transacoes" %}
+{% set tx_type = values.type or "expense" %}
+{% with title=("Editar lançamento" if tx else "Novo lançamento"), subtitle=("Alterações em lançamentos efetivados ajustam o saldo e ficam no histórico." if tx else "Registre uma receita ou despesa."), modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if not tx %}{{ idem() }}{% endif %}
+  {% if error %}{{ alert(error) }}{% endif %}
+
+  {% if tx %}
+  <input type="hidden" name="type" value="{{ tx_type }}">
+  <p class="text-sm">Tipo: <span class="{{ 'badge-positive' if tx_type == 'income' else 'badge-negative' }}">{{ "Receita" if tx_type == "income" else "Despesa" }}</span></p>
+  {% else %}
+  <fieldset>
+    <legend class="label">Tipo</legend>
+    <div class="grid grid-cols-2 gap-2 rounded-xl bg-surface-3 p-1">
+      {% for v, l, ic in [("expense", "Despesa", "trending-down"), ("income", "Receita", "trending-up")] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="type" value="{{ v }}" class="peer sr-only" {% if tx_type == v %}checked{% endif %}>
+        <span class="flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-muted peer-checked:bg-surface peer-checked:text-fg peer-checked:shadow-soft peer-focus-visible:ring-2 peer-focus-visible:ring-primary">{{ icon(ic) }} {{ l }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {% endif %}
+
+  {{ field("description", "Descrição", value=values.description, errors=errors, required=True, maxlength=140, placeholder="Ex.: Supermercado") }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("amount", "Valor", value=values.amount, errors=errors) }}
+    <div>
+      <label class="label" for="f-account_id">Conta <span class="text-negative" aria-hidden="true">*</span></label>
+      <select id="f-account_id" name="account_id" class="input" required {% if errors.account_id %}aria-invalid="true" aria-describedby="e-account_id"{% endif %}>
+        <option value="">Selecione…</option>
+        {% for a in accounts %}<option value="{{ a.id }}" {% if values.account_id == a.id|string %}selected{% endif %}>{{ a.name }} · {{ a.current_balance_cents|brl }}</option>{% endfor %}
+      </select>
+      {% if errors.account_id %}<p id="e-account_id" class="field-error">{{ errors.account_id }}</p>{% endif %}
+      {% if not accounts %}<p class="hint">Cadastre uma conta antes. <a class="link" href="/app/contas">Ir para contas</a></p>{% endif %}
+    </div>
+  </div>
+
+  {% for kind, cats, name in [("expense", expense_categories, "expense_category_id"), ("income", income_categories, "income_category_id")] %}
+  <div data-show-when="type={{ kind }}" {% if tx_type != kind %}hidden{% endif %}>
+    <label class="label" for="f-{{ name }}">Categoria <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-{{ name }}" name="{{ name }}" class="input" {% if tx_type != kind %}disabled{% endif %} {% if errors[name] %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+      <option value="">Selecione…</option>
+      {% for c in cats %}<option value="{{ c.id }}" {% if values[name] == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+    {% if errors[name] %}<p id="e-{{ name }}" class="field-error">{{ errors[name] }}</p>{% endif %}
+  </div>
+  {% endfor %}
+
+  <fieldset>
+    <legend class="label">Status</legend>
+    <div class="flex gap-4 text-sm">
+      {% for v, l in [("settled", "Efetivada (já aconteceu)"), ("planned", "Prevista (a pagar/receber)")] %}
+      <label class="flex items-center gap-2"><input type="radio" name="status" value="{{ v }}" class="checkbox" {% if (values.status or "settled") == v %}checked{% endif %}> {{ l }}</label>
+      {% endfor %}
+    </div>
+    {% if errors.status %}<p class="field-error">{{ errors.status }}</p>{% endif %}
+  </fieldset>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("competence_date", "Data de competência", value=values.competence_date, type="date", errors=errors, required=True, hint="Mês em que a receita/despesa é reconhecida.") }}
+    <div data-show-when="status=settled" {% if (values.status or "settled") != "settled" %}hidden{% endif %}>
+      {{ field("settlement_date", "Data de efetivação", value=values.settlement_date, type="date", errors=errors, hint="Quando o dinheiro entrou/saiu.") }}
+    </div>
+    <div data-show-when="status=planned" {% if (values.status or "settled") != "planned" %}hidden{% endif %}>
+      {{ field("due_date", "Vencimento (opcional)", value=values.due_date, type="date", errors=errors) }}
+    </div>
+  </div>
+  {{ textarea("notes", "Observações", value=values.notes, errors=errors, rows=2, maxlength=1000) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/transacoes" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

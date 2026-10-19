@@ -18,6 +18,7 @@ from app.core.ratelimit import RateLimiter
 from app.core.security import csrf_token_for, tokens_match
 from app.services.audit import AuditService, RequestMeta
 from app.services.auth import AuthenticatedSession, AuthService
+from app.services.container import Services
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 CSRF_HEADER = "x-csrf-token"
@@ -157,3 +158,11 @@ async def csrf_protect(request: Request) -> None:
             provided = value if isinstance(value, str) else None
     if not tokens_match(provided, csrf_token(request)):
         raise CsrfError
+
+
+# ---------------------------------------------------------------- serviços
+def get_services(db: DbSession, clock: AppClock, meta: Meta, settings: AppSettings) -> Services:
+    return Services(db, clock, meta, settings)
+
+
+Svc = Annotated[Services, Depends(get_services)]

@@ -1,0 +1,34 @@
+{% from "components/ui.html" import field, money_field, alert, csrf, idem with context %}
+{% with title="Nova transferência", subtitle="Movimenta dinheiro entre suas contas sem gerar receita ou despesa.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="/app/transferencias" hx-post="/app/transferencias" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {{ idem() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {% for name, label in [("from_account_id", "Conta de origem"), ("to_account_id", "Conta de destino")] %}
+  <div>
+    <label class="label" for="f-{{ name }}">{{ label }} <span class="text-negative" aria-hidden="true">*</span></label>
+    <select id="f-{{ name }}" name="{{ name }}" class="input" required {% if errors[name] %}aria-invalid="true" aria-describedby="e-{{ name }}"{% endif %}>
+      <option value="">Selecione…</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if values[name] == a.id|string %}selected{% endif %}>{{ a.name }} · {{ a.current_balance_cents|brl }}</option>{% endfor %}
+    </select>
+    {% if errors[name] %}<p id="e-{{ name }}" class="field-error">{{ errors[name] }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ money_field("amount", "Valor", value=values.amount, errors=errors) }}
+    {{ field("transfer_date", "Data", value=values.transfer_date, type="date", errors=errors, required=True) }}
+  </div>
+  <fieldset>
+    <legend class="label">Status</legend>
+    <div class="flex gap-4 text-sm">
+      {% for v, l in [("settled", "Efetivada"), ("planned", "Agendada (prevista)")] %}
+      <label class="flex items-center gap-2"><input type="radio" name="status" value="{{ v }}" class="checkbox" {% if (values.status or "settled") == v %}checked{% endif %}> {{ l }}</label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {{ field("description", "Descrição (opcional)", value=values.description, errors=errors, maxlength=140) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/transferencias" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("arrow-left-right") }} Transferir</button>
+  </div>
+</form>

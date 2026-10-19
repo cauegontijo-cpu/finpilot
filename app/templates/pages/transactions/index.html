@@ -1,0 +1,67 @@
+{% extends "layouts/app.html" %}
+{% block title %}Transações{% endblock %}
+{% block page_title %}Transações{% endblock %}
+{% block header_actions %}
+<div class="hidden items-center gap-2 sm:flex">
+  <a href="/app/transferencias/nova" hx-get="/app/transferencias/nova" hx-target="#drawer-body" class="btn btn-secondary">{{ icon("arrow-left-right") }} Transferir</a>
+</div>
+<a href="/app/transacoes/nova" hx-get="/app/transacoes/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Novo lançamento</span></a>
+{% endblock %}
+{% block content %}
+<form id="tx-filters" class="card card-pad mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-6" method="get" action="/app/transacoes"
+      hx-get="/app/transacoes" hx-target="#tx-list" hx-swap="outerHTML" hx-push-url="true" hx-indicator="#tx-list" data-autosubmit role="search" aria-label="Filtros de transações">
+  <div class="xl:col-span-2">
+    <label class="label" for="flt-q">Buscar descrição</label>
+    <div class="relative">
+      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">{{ icon("search") }}</span>
+      <input id="flt-q" name="q" value="{{ raw.q or '' }}" class="input pl-9" placeholder="Ex.: mercado" maxlength="100" type="search">
+    </div>
+  </div>
+  <div>
+    <label class="label" for="flt-month">Competência</label>
+    <input id="flt-month" name="month" type="month" class="input" value="{{ month.iso() if month else '' }}">
+  </div>
+  <div>
+    <label class="label" for="flt-account">Conta</label>
+    <select id="flt-account" name="account_id" class="input">
+      <option value="">Todas</option>
+      {% for a in accounts %}<option value="{{ a.id }}" {% if raw.account_id == a.id|string %}selected{% endif %}>{{ a.name }}{% if not a.is_active %} (arquivada){% endif %}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label" for="flt-category">Categoria</label>
+    <select id="flt-category" name="category_id" class="input">
+      <option value="">Todas</option>
+      {% for c in categories %}<option value="{{ c.id }}" {% if raw.category_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div>
+      <label class="label" for="flt-status">Status</label>
+      <select id="flt-status" name="status" class="input">
+        <option value="">Todos</option>
+        {% for v, l in [("settled", "Efetivada"), ("planned", "Prevista"), ("cancelled", "Cancelada")] %}<option value="{{ v }}" {% if raw.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="flt-kind">Tipo</label>
+      <select id="flt-kind" name="kind" class="input">
+        <option value="">Todos</option>
+        {% for v, l in [("income", "Receitas"), ("expense", "Despesas"), ("transfer", "Transferências"), ("card_payment", "Pag. fatura")] %}<option value="{{ v }}" {% if raw.kind == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-end gap-3 md:col-span-2 xl:col-span-6">
+    <div>
+      <label class="label" for="flt-sort">Ordenar por</label>
+      <select id="flt-sort" name="sort" class="input">
+        {% for v, l in sort_options.items() %}<option value="{{ v }}" {% if (raw.sort or "-competence_date") == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary">{{ icon("filter") }} Filtrar</button>
+    <a href="/app/transacoes" class="btn btn-ghost">Limpar filtros</a>
+    <a href="/app/transacoes?period=all" class="btn btn-ghost">Todo o período</a>
+  </div>
+</form>
+{% include "partials/transactions/list.html" %}
+{% endblock %}

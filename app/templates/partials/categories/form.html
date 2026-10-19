@@ -1,0 +1,16 @@
+{% from "components/ui.html" import field, select, alert, csrf with context %}
+{% from "components/pickers.html" import color_picker, icon_picker with context %}
+{% set action = "/app/categorias/" ~ category.id if category else "/app/categorias" %}
+{% with title=("Editar categoria" if category else "Nova categoria"), subtitle="Categorias classificam receitas e despesas nos relatórios e orçamentos.", modal=False %}{% include "components/drawer.html" %}{% endwith %}
+<form method="post" action="{{ action }}" hx-post="{{ action }}" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
+  {{ csrf() }}
+  {% if error %}{{ alert(error) }}{% endif %}
+  {{ field("name", "Nome", value=values.name, errors=errors, required=True, maxlength=50) }}
+  {{ select("kind", "Tipo", kind_options, selected=values.kind, errors=errors, required=True) }}
+  {{ color_picker(palette, values.color) }}
+  {{ icon_picker(icons, values.icon) }}
+  <div class="flex justify-end gap-2 border-t border-line pt-5">
+    {% if is_htmx %}<button type="button" class="btn btn-secondary" data-close-dialog>Cancelar</button>{% else %}<a href="/app/categorias" class="btn btn-secondary">Cancelar</a>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon("check") }} Salvar</button>
+  </div>
+</form>

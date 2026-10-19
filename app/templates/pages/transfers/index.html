@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import empty_state, status_badge, pagination, csrf with context %}
+{% block title %}Transferências{% endblock %}
+{% block page_title %}Transferências{% endblock %}
+{% block header_actions %}
+<a href="/app/transferencias/nova" hx-get="/app/transferencias/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova transferência</span></a>
+{% endblock %}
+{% block content %}
+<div id="transfers-list" hx-get="/app/transferencias?page={{ page_obj.page }}" hx-trigger="refresh from:body" hx-select="#transfers-list" hx-target="this" hx-swap="outerHTML">
+  <p class="mb-4 max-w-3xl text-sm text-muted">Transferências entre contas próprias alteram os saldos das duas contas de forma atômica e não entram nos totais de receitas e despesas.</p>
+  <div class="card overflow-hidden">
+    {% if page_obj.items %}
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Transferências</caption>
+        <thead><tr><th scope="col">Data</th><th scope="col">Origem → Destino</th><th scope="col" class="hidden md:table-cell">Descrição</th><th scope="col">Status</th><th scope="col" class="text-right">Valor</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+        <tbody>
+          {% for t in page_obj.items %}
+          <tr class="{{ 'opacity-60' if t.status.value == 'cancelled' }}">
+            <td class="num text-sm">{{ t.transfer_date|date_br }}</td>
+            <td class="text-sm"><span class="font-medium">{{ t.from_account.name }}</span> <span class="text-muted">→</span> <span class="font-medium">{{ t.to_account.name }}</span></td>
+            <td class="hidden text-sm text-muted md:table-cell">{{ t.description or "—" }}</td>
+            <td>{{ status_badge(t.status) }}</td>
+            <td class="num text-right font-semibold">{{ t.amount_cents|brl }}</td>
+            <td class="whitespace-nowrap text-right">
+              {% if t.status.value == "planned" %}
+              <form class="inline" method="post" action="/app/transferencias/{{ t.id }}/efetivar" hx-post="/app/transferencias/{{ t.id }}/efetivar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm">{{ icon("circle-check") }} Efetivar</button></form>
+              {% endif %}
+              {% if t.status.value != "cancelled" %}
+              <form class="inline" method="post" action="/app/transferencias/{{ t.id }}/cancelar" hx-post="/app/transferencias/{{ t.id }}/cancelar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm text-negative" data-confirm="Cancelar esta transferência? {{ 'Os dois lados serão estornados.' if t.status.value == 'settled' else '' }}">{{ icon("undo-2") }} {{ "Estornar" if t.status.value == "settled" else "Cancelar" }}</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pagination(page_obj, base_query, "#transfers-list") }}
+    {% else %}
+    {{ empty_state("Nenhuma transferência", "Mova dinheiro entre suas contas, por exemplo da corrente para a poupança.", "arrow-left-right", "/app/transferencias/nova", "Nova transferência", dialog_id="drawer") }}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

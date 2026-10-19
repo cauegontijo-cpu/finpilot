@@ -21,7 +21,8 @@ SELECTABLE_ICONS = [
 ]
 PALETTE = [
     "#0b1b3f", "#2563eb", "#0ea5e9", "#14b8a6", "#10b981", "#22c55e", "#84cc16", "#eab308",
-    "#f97316", "#ef4444", "#ec4899", "#8b5cf6", "#6366f1", "#64748b",
+    "#f97316", "#ef4444", "#ec4899", "#8b5cf6", "#6366f1", "#64748b", "#7c3aed", "#0d9488",
+    "#059669",
 ]
 
 
@@ -54,8 +55,9 @@ def clean_multiline(value: str | None, *, max_len: int) -> str | None:
 def validate_color(value: str | None, default: str = "#64748b") -> str:
     if not value:
         return default
-    if not _COLOR.match(value):
-        raise ValidationFailed("Cor inválida.", field_errors={"color": "Use o formato #RRGGBB"})
+    if not _COLOR.match(value) or value.lower() not in PALETTE:
+        # Paleta fechada: cada cor tem classe CSS própria (sem estilos inline — CSP).
+        raise ValidationFailed("Cor inválida.", field_errors={"color": "Escolha uma cor da paleta"})
     return value.lower()
 
 

@@ -1,0 +1,28 @@
+{% macro color_picker(palette, selected) -%}
+<fieldset>
+  <legend class="label">Cor</legend>
+  <div class="flex flex-wrap gap-2">
+    {% for c in palette %}
+    <label class="relative cursor-pointer">
+      <input type="radio" name="color" value="{{ c }}" class="peer sr-only" {% if c == selected %}checked{% endif %}>
+      <span class="block size-7 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-surface peer-checked:ring-fg peer-focus-visible:ring-primary {{ color_class(c) }}"></span>
+      <span class="sr-only">Cor {{ c }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</fieldset>
+{%- endmacro %}
+
+{% macro icon_picker(icons, selected) -%}
+<fieldset>
+  <legend class="label">Ícone</legend>
+  <div class="flex flex-wrap gap-2">
+    {% for name in icons %}
+    <label class="cursor-pointer">
+      <input type="radio" name="icon" value="{{ name }}" class="peer sr-only" {% if name == selected %}checked{% endif %}>
+      <span class="inline-flex size-9 items-center justify-center rounded-lg border border-line text-muted peer-checked:border-primary peer-checked:bg-primary-soft peer-checked:text-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary">{{ icon(name, "size-4", label=name) }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</fieldset>
+{%- endmacro %}

@@ -1,0 +1,22 @@
+{% with title="Histórico do lançamento", subtitle=tx.description, modal=True %}{% include "components/drawer.html" %}{% endwith %}
+<div class="max-h-[60vh] overflow-y-auto px-6 py-5">
+  <ol class="relative space-y-5 border-l border-line pl-6">
+    {% for log in logs %}
+    <li>
+      <span class="absolute -left-[7px] mt-1.5 size-3 rounded-full border-2 border-surface {{ 'bg-negative' if 'reversed' in log.event_type or 'cancel' in log.event_type else 'bg-primary' }}"></span>
+      <p class="text-sm font-semibold">{{ {"transaction.created": "Criado", "transaction.updated": "Alterado", "transaction.settled": "Efetivado", "transaction.cancelled": "Cancelado", "transaction.reversed": "Estornado", "transfer.created": "Transferência criada", "transfer.reversed": "Transferência estornada", "transfer.cancelled": "Transferência cancelada", "transfer.settled": "Transferência efetivada"}.get(log.event_type, log.event_type) }}</p>
+      <p class="text-xs text-muted">{{ log.occurred_at|date_br }}{% if log.request_id %} · req {{ log.request_id }}{% endif %}</p>
+      {% if log.event_type == "transaction.updated" and log.changes %}
+      <dl class="mt-2 space-y-1 rounded-lg bg-surface-2 p-3 text-xs">
+        {% for fieldname, change in log.changes.items() %}
+        <div class="flex flex-wrap gap-1"><dt class="font-semibold">{{ fieldname }}:</dt><dd class="text-muted">{{ change.antes if change.antes is not none else "—" }} → <span class="text-fg">{{ change.depois if change.depois is not none else "—" }}</span></dd></div>
+        {% endfor %}
+      </dl>
+      {% endif %}
+    </li>
+    {% else %}
+    <li class="text-sm text-muted">Sem registros.</li>
+    {% endfor %}
+  </ol>
+  <p class="mt-5 text-xs text-muted">Valores monetários no histórico estão em centavos.</p>
+</div>

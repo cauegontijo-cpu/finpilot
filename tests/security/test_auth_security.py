@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -153,3 +154,27 @@ def test_errors_do_not_leak_internals(client: TestClient) -> None:
     assert "Traceback" not in response.text
     api = client.get("/api/v1/inexistente")
     assert api.headers["content-type"].startswith("application/problem+json")
+
+
+def _hidden_csrf(html: str) -> str:
+    import re  # noqa: PLC0415
+
+    match = re.search(r'name="csrf_token" value="([0-9a-f]{64})"', html)
+    assert match, "formulário sem token CSRF renderizado"
+    return match.group(1)
+
+
+def test_rendered_forms_carry_valid_csrf_token(client: TestClient, user: Any) -> None:
+    """Fluxo real de navegador: o token vem do HTML, não de cálculo no teste."""
+    page = client.get("/login")
+    token = _hidden_csrf(page.text)
+    meta = re.search(r'name="csrf-token" content="([0-9a-f]{64})"', page.text)
+    assert meta and meta.group(1) == token
+    response = client.post(
+        "/login", data={"email": user.email, "password": TEST_PASSWORD, "csrf_token": token}, follow_redirects=False
+    )
+    assert response.status_code == 303
+    settings_page = client.get("/app/configuracoes")
+    token2 = _hidden_csrf(settings_page.text)
+    assert token2 != token  # novo vínculo após login
+    assert client.post("/app/configuracoes/perfil", data={"full_name": "Ana S.", "csrf_token": token2}, follow_redirects=False).status_code == 303

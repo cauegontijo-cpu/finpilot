@@ -1,0 +1,76 @@
+{% from "components/ui.html" import empty_state, status_badge, pagination, csrf, regime with context %}
+<div id="tx-list" hx-get="/app/transacoes?{{ base_query }}&page={{ page_obj.page }}" hx-trigger="refresh from:body" hx-target="this" hx-swap="outerHTML" class="htmx-dim">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      {% if month %}
+      <a class="btn-icon" href="/app/transacoes?month={{ prev_month }}" hx-get="/app/transacoes?month={{ prev_month }}" hx-target="#tx-list" hx-swap="outerHTML" hx-push-url="true" aria-label="Mês anterior">{{ icon("chevron-left") }}</a>
+      <p class="min-w-40 text-center text-sm font-semibold capitalize">{{ month.label() }}</p>
+      <a class="btn-icon" href="/app/transacoes?month={{ next_month }}" hx-get="/app/transacoes?month={{ next_month }}" hx-target="#tx-list" hx-swap="outerHTML" hx-push-url="true" aria-label="Próximo mês">{{ icon("chevron-right") }}</a>
+      {% elif filters.start or filters.end %}
+      <p class="text-sm font-semibold">{{ filters.start|date_br }} – {{ filters.end|date_br }}</p>
+      {% else %}
+      <p class="text-sm font-semibold">Todo o período</p>
+      {% endif %}
+    </div>
+    <span class="htmx-indicator text-xs text-muted" aria-hidden="true">Atualizando…</span>
+  </div>
+
+  <section class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totalizadores do filtro">
+    <div class="card card-pad"><p class="text-xs text-muted">Receitas efetivadas {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold text-positive">{{ totals.income_settled|brl }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Despesas efetivadas {{ regime("competencia") }}</p><p class="num mt-1 text-xl font-bold text-negative">{{ totals.expense_settled|brl }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Resultado efetivado</p><p class="num mt-1 text-xl font-bold {{ 'text-negative' if totals.net_settled < 0 else 'text-fg' }}">{{ totals.net_settled|brl(True) }}</p></div>
+    <div class="card card-pad"><p class="text-xs text-muted">Previstos (não efetivados) {{ regime("previsto") }}</p><p class="num mt-1 text-sm"><span class="text-positive">+{{ totals.income_planned|brl }}</span> · <span class="text-negative">−{{ totals.expense_planned|brl }}</span></p></div>
+  </section>
+
+  <div class="card overflow-hidden">
+    {% if page_obj.items %}
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">Lançamentos</caption>
+        <thead>
+          <tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col" class="hidden md:table-cell">Categoria</th><th scope="col" class="hidden lg:table-cell">Conta</th><th scope="col">Status</th><th scope="col" class="text-right">Valor</th><th scope="col"><span class="sr-only">Ações</span></th></tr>
+        </thead>
+        <tbody>
+        {% for t in page_obj.items %}
+          {% set inflow = t.type.value in ("income", "transfer_in") %}
+          {% set is_transfer = t.type.value in ("transfer_in", "transfer_out") %}
+          <tr class="{{ 'opacity-60' if t.status.value == 'cancelled' }}">
+            <td class="num whitespace-nowrap text-sm">{{ t.competence_date|date_br }}{% if t.status.value == "planned" and t.due_date %}<span class="block text-xs text-muted">vence {{ t.due_date|date_br }}</span>{% endif %}</td>
+            <td>
+              <p class="font-medium {{ 'line-through' if t.status.value == 'cancelled' }}">{{ t.description }}</p>
+              <p class="text-xs text-muted">{{ TYPE_LABELS[t.type] }}{% if t.origin.value != "manual" %} · {{ ORIGIN_LABELS[t.origin] }}{% endif %}</p>
+            </td>
+            <td class="hidden md:table-cell">{% if t.category %}<span class="inline-flex items-center gap-1.5 text-sm"><span class="size-2 rounded-full {{ color_class(t.category.color) }}"></span>{{ t.category.name }}</span>{% else %}<span class="text-xs text-muted">—</span>{% endif %}</td>
+            <td class="hidden text-sm lg:table-cell">{{ t.account.name }}</td>
+            <td>{{ status_badge(t.status) }}</td>
+            <td class="num whitespace-nowrap text-right font-semibold {{ 'text-positive' if inflow else 'text-negative' }}">{{ "+" if inflow else "−" }}{{ t.amount_cents|brl }}</td>
+            <td class="text-right">
+              <div class="relative inline-block">
+                <button type="button" class="btn-icon" data-menu-trigger aria-controls="tx-menu-{{ t.id }}" aria-expanded="false" aria-label="Ações de {{ t.description }}">{{ icon("ellipsis") }}</button>
+                <div id="tx-menu-{{ t.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-52 rounded-xl border border-line bg-surface p-1 text-left shadow-lift">
+                  {% if not is_transfer and t.type.value != "card_payment" and t.status.value != "cancelled" %}
+                  <a href="/app/transacoes/{{ t.id }}/editar" hx-get="/app/transacoes/{{ t.id }}/editar" hx-target="#drawer-body" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("pencil") }} Editar</a>
+                  {% if t.status.value == "planned" %}
+                  <form method="post" action="/app/transacoes/{{ t.id }}/efetivar" hx-post="/app/transacoes/{{ t.id }}/efetivar">{{ csrf() }}<button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("circle-check") }} Efetivar hoje</button></form>
+                  {% endif %}
+                  <form method="post" action="/app/transacoes/{{ t.id }}/cancelar" hx-post="/app/transacoes/{{ t.id }}/cancelar">{{ csrf() }}<button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-negative hover:bg-negative-soft" data-confirm="{{ 'Estornar e cancelar este lançamento efetivado? O saldo será revertido e o histórico preservado.' if t.status.value == 'settled' else 'Cancelar este lançamento previsto?' }}">{{ icon("undo-2") }} {{ "Estornar" if t.status.value == "settled" else "Cancelar" }}</button></form>
+                  {% elif is_transfer %}
+                  <a href="/app/transferencias" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("arrow-left-right") }} Ver transferências</a>
+                  {% elif t.type.value == "card_payment" %}
+                  <a href="/app/cartoes" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("credit-card") }} Ver cartões</a>
+                  {% endif %}
+                  <a href="/app/transacoes/{{ t.id }}/historico" hx-get="/app/transacoes/{{ t.id }}/historico" hx-target="#modal-body" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("history") }} Histórico</a>
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pagination(page_obj, base_query, "#tx-list") }}
+    {% else %}
+    {{ empty_state("Nenhum lançamento encontrado", "Ajuste os filtros ou registre uma nova receita ou despesa.", "receipt", "/app/transacoes/nova", "Novo lançamento", dialog_id="drawer") }}
+    {% endif %}
+  </div>
+</div>

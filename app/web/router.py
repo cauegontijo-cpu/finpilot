@@ -2,9 +2,8 @@
 
 from fastapi import APIRouter
 
-from app.web import auth, public, settings
+from app.web import accounts, auth, categories, public, settings, transactions
 
 web_router = APIRouter()
-web_router.include_router(public.router)
-web_router.include_router(auth.router)
-web_router.include_router(settings.router)
+for module in (public, auth, settings, accounts, categories, transactions):
+    web_router.include_router(module.router)

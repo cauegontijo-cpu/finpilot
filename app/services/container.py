@@ -1,0 +1,43 @@
+"""Contêiner de serviços por requisição (injeção de dependências simples e explícita)."""
+
+from __future__ import annotations
+
+from functools import cached_property
+
+from sqlalchemy.orm import Session
+
+from app.core.clock import Clock
+from app.core.config import Settings
+from app.services.accounts import AccountService
+from app.services.audit import AuditService, RequestMeta
+from app.services.categories import CategoryService
+from app.services.transactions import TransactionService
+from app.services.transfers import TransferService
+
+
+class Services:
+    def __init__(self, db: Session, clock: Clock, meta: RequestMeta, settings: Settings) -> None:
+        self.db = db
+        self.clock = clock
+        self.meta = meta
+        self.settings = settings
+
+    @cached_property
+    def audit(self) -> AuditService:
+        return AuditService(self.db, self.meta)
+
+    @cached_property
+    def accounts(self) -> AccountService:
+        return AccountService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def categories(self) -> CategoryService:
+        return CategoryService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def transactions(self) -> TransactionService:
+        return TransactionService(self.db, self.clock, self.audit)
+
+    @cached_property
+    def transfers(self) -> TransferService:
+        return TransferService(self.db, self.clock, self.audit)

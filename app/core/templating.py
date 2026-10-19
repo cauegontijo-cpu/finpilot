@@ -71,6 +71,16 @@ def width_class(value: float) -> str:
     return f"w-pct-{max(0, min(100, round(value)))}"
 
 
+def color_class(hex_color: str | None, kind: str = "bg") -> str:
+    """Classe CSS da cor da paleta (ex.: bg-c-2563eb, text-c-2563eb, bg-c-2563eb-soft)."""
+    value = (hex_color or "#64748b").lstrip("#").lower()
+    if not re.fullmatch(r"[0-9a-f]{6}", value):
+        value = "64748b"
+    if kind == "soft":
+        return f"bg-c-{value}-soft"
+    return f"{kind}-c-{value}"
+
+
 def _pct(part: int, whole: int) -> str:
     return f"{percent(part, whole)}".replace(".", ",") + "%"
 
@@ -92,6 +102,7 @@ def build_templates() -> Jinja2Templates:
     env.globals.update(
         icon=icon,
         width_class=width_class,
+        color_class=color_class,
         TYPE_LABELS=TYPE_LABELS,
         STATUS_LABELS=STATUS_LABELS,
         ORIGIN_LABELS=ORIGIN_LABELS,

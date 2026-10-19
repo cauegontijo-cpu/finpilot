@@ -360,3 +360,22 @@ dialog[open].drawer { animation: drawer-in 180ms ease-out; }
 .w-pct-98{width:98%}
 .w-pct-99{width:99%}
 .w-pct-100{width:100%}
+
+/* Cores da paleta de contas/categorias/metas (classes fixas, compatíveis com CSP). */
+.bg-c-0b1b3f{background-color:#0b1b3f}.text-c-0b1b3f{color:#0b1b3f}.border-c-0b1b3f{border-color:#0b1b3f}.bg-c-0b1b3f-soft{background-color:#0b1b3f1f}
+.bg-c-2563eb{background-color:#2563eb}.text-c-2563eb{color:#2563eb}.border-c-2563eb{border-color:#2563eb}.bg-c-2563eb-soft{background-color:#2563eb1f}
+.bg-c-0ea5e9{background-color:#0ea5e9}.text-c-0ea5e9{color:#0ea5e9}.border-c-0ea5e9{border-color:#0ea5e9}.bg-c-0ea5e9-soft{background-color:#0ea5e91f}
+.bg-c-14b8a6{background-color:#14b8a6}.text-c-14b8a6{color:#14b8a6}.border-c-14b8a6{border-color:#14b8a6}.bg-c-14b8a6-soft{background-color:#14b8a61f}
+.bg-c-10b981{background-color:#10b981}.text-c-10b981{color:#10b981}.border-c-10b981{border-color:#10b981}.bg-c-10b981-soft{background-color:#10b9811f}
+.bg-c-22c55e{background-color:#22c55e}.text-c-22c55e{color:#22c55e}.border-c-22c55e{border-color:#22c55e}.bg-c-22c55e-soft{background-color:#22c55e1f}
+.bg-c-84cc16{background-color:#84cc16}.text-c-84cc16{color:#84cc16}.border-c-84cc16{border-color:#84cc16}.bg-c-84cc16-soft{background-color:#84cc161f}
+.bg-c-eab308{background-color:#eab308}.text-c-eab308{color:#eab308}.border-c-eab308{border-color:#eab308}.bg-c-eab308-soft{background-color:#eab3081f}
+.bg-c-f97316{background-color:#f97316}.text-c-f97316{color:#f97316}.border-c-f97316{border-color:#f97316}.bg-c-f97316-soft{background-color:#f973161f}
+.bg-c-ef4444{background-color:#ef4444}.text-c-ef4444{color:#ef4444}.border-c-ef4444{border-color:#ef4444}.bg-c-ef4444-soft{background-color:#ef44441f}
+.bg-c-ec4899{background-color:#ec4899}.text-c-ec4899{color:#ec4899}.border-c-ec4899{border-color:#ec4899}.bg-c-ec4899-soft{background-color:#ec48991f}
+.bg-c-8b5cf6{background-color:#8b5cf6}.text-c-8b5cf6{color:#8b5cf6}.border-c-8b5cf6{border-color:#8b5cf6}.bg-c-8b5cf6-soft{background-color:#8b5cf61f}
+.bg-c-6366f1{background-color:#6366f1}.text-c-6366f1{color:#6366f1}.border-c-6366f1{border-color:#6366f1}.bg-c-6366f1-soft{background-color:#6366f11f}
+.bg-c-64748b{background-color:#64748b}.text-c-64748b{color:#64748b}.border-c-64748b{border-color:#64748b}.bg-c-64748b-soft{background-color:#64748b1f}
+.bg-c-7c3aed{background-color:#7c3aed}.text-c-7c3aed{color:#7c3aed}.border-c-7c3aed{border-color:#7c3aed}.bg-c-7c3aed-soft{background-color:#7c3aed1f}
+.bg-c-0d9488{background-color:#0d9488}.text-c-0d9488{color:#0d9488}.border-c-0d9488{border-color:#0d9488}.bg-c-0d9488-soft{background-color:#0d94881f}
+.bg-c-059669{background-color:#059669}.text-c-059669{color:#059669}.border-c-059669{border-color:#059669}.bg-c-059669-soft{background-color:#0596691f}

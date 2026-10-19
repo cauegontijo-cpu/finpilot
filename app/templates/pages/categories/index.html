@@ -1,0 +1,48 @@
+{% extends "layouts/app.html" %}
+{% from "components/ui.html" import csrf with context %}
+{% block title %}Categorias{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+{% block header_actions %}
+<a href="/app/categorias/nova" hx-get="/app/categorias/nova" hx-target="#drawer-body" class="btn btn-primary">{{ icon("plus") }}<span class="hidden sm:inline">Nova categoria</span></a>
+{% endblock %}
+{% block content %}
+<div id="categories-page" hx-get="/app/categorias" hx-trigger="refresh from:body" hx-select="#categories-page" hx-target="this" hx-swap="outerHTML">
+  <div class="grid gap-6 lg:grid-cols-2">
+    {% for title, items in groups %}
+    <section class="card" aria-labelledby="h-{{ loop.index }}">
+      <header class="flex items-center justify-between border-b border-line px-5 py-4">
+        <h2 id="h-{{ loop.index }}" class="font-semibold">{{ title }}</h2>
+        <span class="badge-neutral num">{{ items|length }}</span>
+      </header>
+      <ul class="divide-y divide-line">
+        {% for c in items %}
+        <li class="flex items-center gap-3 px-5 py-3">
+          <span class="inline-flex size-9 items-center justify-center rounded-lg text-white {{ color_class(c.color) }}">{{ icon(c.icon) }}</span>
+          <span class="flex-1 text-sm font-medium">{{ c.name }}</span>
+          <a href="/app/categorias/{{ c.id }}/editar" hx-get="/app/categorias/{{ c.id }}/editar" hx-target="#drawer-body" class="btn-icon" aria-label="Editar {{ c.name }}">{{ icon("pencil") }}</a>
+          <form method="post" action="/app/categorias/{{ c.id }}/arquivar" hx-post="/app/categorias/{{ c.id }}/arquivar">{{ csrf() }}<button type="submit" class="btn-icon" aria-label="Arquivar {{ c.name }}" data-confirm="Arquivar “{{ c.name }}”? Ela não aparecerá em novos lançamentos, mas o histórico é preservado.">{{ icon("archive") }}</button></form>
+          <form method="post" action="/app/categorias/{{ c.id }}/excluir" hx-post="/app/categorias/{{ c.id }}/excluir">{{ csrf() }}<button type="submit" class="btn-icon hover:text-negative" aria-label="Excluir {{ c.name }}" data-confirm="Excluir “{{ c.name }}”? Só é possível se não houver lançamentos, orçamentos ou recorrências vinculados.">{{ icon("trash-2") }}</button></form>
+        </li>
+        {% else %}
+        <li class="px-5 py-8 text-center text-sm text-muted">Nenhuma categoria ativa.</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+  </div>
+  {% if archived %}
+  <section class="mt-8">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Arquivadas</h2>
+    <div class="card divide-y divide-line">
+      {% for c in archived %}
+      <div class="flex items-center gap-3 px-5 py-3">
+        <span class="inline-flex size-8 items-center justify-center rounded-lg bg-surface-3 text-muted">{{ icon(c.icon) }}</span>
+        <span class="flex-1 text-sm">{{ c.name }} <span class="badge-neutral ml-1">{{ kind_labels[c.kind] }}</span></span>
+        <form method="post" action="/app/categorias/{{ c.id }}/reativar" hx-post="/app/categorias/{{ c.id }}/reativar">{{ csrf() }}<button type="submit" class="btn btn-ghost btn-sm">{{ icon("archive-restore") }} Reativar</button></form>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

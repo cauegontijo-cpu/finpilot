@@ -83,7 +83,7 @@
   <h3 class="text-base font-semibold">{{ title }}</h3>
   <p class="mt-1 max-w-sm text-sm text-muted">{{ text }}</p>
   {% if action_url and action_label %}
-  <a href="{{ action_url }}" class="btn btn-primary mt-5" {% if dialog_id %}hx-get="{{ action_url }}" hx-target="#{{ dialog_id }}-body" data-open-dialog="{{ dialog_id }}"{% endif %}>{{ icon("plus") }} {{ action_label }}</a>
+  <a href="{{ action_url }}" class="btn btn-primary mt-5" {% if dialog_id %}hx-get="{{ action_url }}" hx-target="#{{ dialog_id }}-body"{% endif %}>{{ icon("plus") }} {{ action_label }}</a>
   {% endif %}
 </div>
 {%- endmacro %}
