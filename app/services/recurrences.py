@@ -349,7 +349,11 @@ class RecurrenceService:
         if created:
             logger.info(
                 "ocorrências geradas",
-                extra={"recurrence_id": str(rule.id), "occurrences_created": created, "settled": settled},
+                extra={
+                    "recurrence_id": str(rule.id),
+                    "occurrences_created": created,
+                    "settled": settled,
+                },
             )
         return GenerationResult(created, settled)
 

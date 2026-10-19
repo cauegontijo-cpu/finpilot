@@ -18,6 +18,13 @@ from app.core.logging import request_id_var
 access_logger = logging.getLogger("finpilot.access")
 
 ANON_COOKIE = "fp_anon"
+
+
+def anon_cookie_name(settings: Settings) -> str:
+    """Em HTTPS usa o prefixo __Host- (sem Domain, Path=/, Secure): impede cookie tossing."""
+    return f"__Host-{ANON_COOKIE}" if settings.cookie_secure else ANON_COOKIE
+
+
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
 CSP = "; ".join(
@@ -61,7 +68,8 @@ class RequestContextMiddleware:
 
         cookies = SimpleCookie()
         cookies.load(headers.get(b"cookie", b"").decode("latin-1"))
-        anon = cookies.get(ANON_COOKIE)
+        cookie_name = anon_cookie_name(self.settings)
+        anon = cookies.get(cookie_name)
         anon_value = (
             anon.value if anon and re.fullmatch(r"[A-Za-z0-9_-]{20,64}", anon.value) else None
         )
@@ -96,7 +104,7 @@ class RequestContextMiddleware:
                     secure = "; Secure" if self.settings.cookie_secure else ""
                     h.append(
                         "Set-Cookie",
-                        f"{ANON_COOKIE}={state['anon_id']}; Path=/; HttpOnly; SameSite=Lax{secure}",
+                        f"{cookie_name}={state['anon_id']}; Path=/; HttpOnly; SameSite=Lax{secure}",
                     )
             await send(message)
 

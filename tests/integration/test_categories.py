@@ -28,8 +28,12 @@ def test_default_categories_are_per_user(db: Session, user: Any, other_user: Any
 def test_duplicate_name_same_kind_rejected_but_other_kind_allowed(db: Session, user: Any) -> None:
     svc = service(db)
     with pytest.raises(ConflictError):
-        svc.create(user.id, CategoryInput("alimentação", CategoryKind.EXPENSE, "#f97316", "utensils"))
-    created = svc.create(user.id, CategoryInput("Alimentação", CategoryKind.INCOME, "#f97316", "utensils"))
+        svc.create(
+            user.id, CategoryInput("alimentação", CategoryKind.EXPENSE, "#f97316", "utensils")
+        )
+    created = svc.create(
+        user.id, CategoryInput("Alimentação", CategoryKind.INCOME, "#f97316", "utensils")
+    )
     assert created.kind is CategoryKind.INCOME
 
 
@@ -65,8 +69,16 @@ def test_delete_only_without_history_and_kind_change_blocked_in_use(db: Session,
     with pytest.raises(BusinessRuleViolation):
         svc.delete(user.id, str(saude.id))
     with pytest.raises(BusinessRuleViolation):
-        svc.update(user.id, str(saude.id), CategoryInput("Saúde", CategoryKind.INCOME, saude.color, saude.icon))
-    updated = svc.update(user.id, str(saude.id), CategoryInput("Saúde e bem-estar", CategoryKind.EXPENSE, "#ef4444", "heart-pulse"))
+        svc.update(
+            user.id,
+            str(saude.id),
+            CategoryInput("Saúde", CategoryKind.INCOME, saude.color, saude.icon),
+        )
+    updated = svc.update(
+        user.id,
+        str(saude.id),
+        CategoryInput("Saúde e bem-estar", CategoryKind.EXPENSE, "#ef4444", "heart-pulse"),
+    )
     assert updated.name == "Saúde e bem-estar"
     unused = category(db, user, "Educação")
     svc.delete(user.id, str(unused.id))
@@ -75,13 +87,43 @@ def test_delete_only_without_history_and_kind_change_blocked_in_use(db: Session,
 
 def test_category_web_crud(auth_client: TestClient, user: Any, db: Session) -> None:
     hx = {"HX-Request": "true"}
-    assert post_form(auth_client, "/app/categorias", {"name": "Pets", "kind": "expense", "color": "#14b8a6", "icon": "tag"}, headers=hx).status_code == 204
-    dup = post_form(auth_client, "/app/categorias", {"name": "pets", "kind": "expense", "color": "#14b8a6", "icon": "tag"}, headers=hx)
+    assert (
+        post_form(
+            auth_client,
+            "/app/categorias",
+            {"name": "Pets", "kind": "expense", "color": "#14b8a6", "icon": "tag"},
+            headers=hx,
+        ).status_code
+        == 204
+    )
+    dup = post_form(
+        auth_client,
+        "/app/categorias",
+        {"name": "pets", "kind": "expense", "color": "#14b8a6", "icon": "tag"},
+        headers=hx,
+    )
     assert dup.status_code == 422 and "Já existe" in dup.text
     pets = category(db, user, "Pets")
     assert auth_client.get(f"/app/categorias/{pets.id}/editar", headers=hx).status_code == 200
-    assert post_form(auth_client, f"/app/categorias/{pets.id}", {"name": "Pets & Cia", "kind": "expense", "color": "#14b8a6", "icon": "tag"}, headers=hx).status_code == 204
-    assert post_form(auth_client, f"/app/categorias/{pets.id}/arquivar", {}, headers=hx).status_code == 204
-    assert post_form(auth_client, f"/app/categorias/{pets.id}/reativar", {}, headers=hx).status_code == 204
-    assert post_form(auth_client, f"/app/categorias/{pets.id}/excluir", {}, headers=hx).status_code == 204
+    assert (
+        post_form(
+            auth_client,
+            f"/app/categorias/{pets.id}",
+            {"name": "Pets & Cia", "kind": "expense", "color": "#14b8a6", "icon": "tag"},
+            headers=hx,
+        ).status_code
+        == 204
+    )
+    assert (
+        post_form(auth_client, f"/app/categorias/{pets.id}/arquivar", {}, headers=hx).status_code
+        == 204
+    )
+    assert (
+        post_form(auth_client, f"/app/categorias/{pets.id}/reativar", {}, headers=hx).status_code
+        == 204
+    )
+    assert (
+        post_form(auth_client, f"/app/categorias/{pets.id}/excluir", {}, headers=hx).status_code
+        == 204
+    )
     assert "Pets" not in auth_client.get("/app/categorias").text

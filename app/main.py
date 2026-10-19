@@ -65,7 +65,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware, settings=settings)
     if settings.is_production:
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+        # 127.0.0.1/localhost: health check interno do container (o proxy envia o Host público).
+        app.add_middleware(
+            TrustedHostMiddleware, allowed_hosts=[*settings.allowed_hosts, "127.0.0.1", "localhost"]
+        )
 
     register_exception_handlers(app)
     app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")

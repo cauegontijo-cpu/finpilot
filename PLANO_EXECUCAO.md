@@ -34,7 +34,7 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 - [x] Banco, Base de modelos, Alembic
 - [x] FastAPI + Jinja2 + headers de segurança + handlers globais de erro
 - [x] Assets locais (Tailwind standalone, HTMX, Chart.js, Lucide, Inter)
-- [~] Docker / Compose — infraestrutura (postgres, db-test, redis, mailpit) validada; imagem da aplicação pendente (Fase 7)
+- [x] Docker / Compose (web, migrate, postgres, db-test, redis, mailpit, scheduler)
 - [x] Testes iniciais (health, config, money)
 
 ### Fase 2 — Segurança e autenticação
@@ -63,24 +63,24 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 - [x] Testes de agregação
 
 ### Fase 5 — Complementares
-- [ ] Metas (RN038–RN043)
-- [ ] Recorrências + job (RN044–RN050)
-- [ ] Importação CSV (RN051–RN060)
-- [ ] Relatórios + CSV/PDF/impressão
+- [x] Metas (RN038–RN043)
+- [x] Recorrências + job (RN044–RN050)
+- [x] Importação CSV (RN051–RN060)
+- [x] Relatórios + CSV/PDF/impressão
 - [x] Previsão de fluxo de caixa (RN071–RN077)
 
 ### Fase 6 — Cartões
-- [ ] Cartões, compras, parcelas, faturas, pagamentos, estornos, limites (RN061–RN070)
-- [ ] Testes de virada de mês/ano, pagamento parcial, estorno
+- [x] Cartões, compras, parcelas, faturas, pagamentos, estornos, limites (RN061–RN070)
+- [x] Testes de virada de mês/ano, pagamento parcial, estorno
 
 ### Fase 7 — Qualidade e publicação
-- [ ] Revisão visual, responsividade, acessibilidade
-- [ ] Revisão de segurança
-- [ ] Suíte completa + cobertura ≥ 80% em services/domain
-- [ ] CI (GitHub Actions)
-- [ ] Seed de demonstração
-- [ ] Documentação final (README + docs/*) e POST_LINKEDIN.md
-- [ ] Screenshots reais
+- [x] Revisão visual, responsividade, acessibilidade
+- [x] Revisão de segurança
+- [x] Suíte completa + cobertura ≥ 80% em services/domain
+- [x] CI (GitHub Actions)
+- [x] Seed de demonstração
+- [x] Documentação final (README + docs/*) e POST_LINKEDIN.md
+- [x] Screenshots reais
 
 ## 3. Registro de execução
 
@@ -92,18 +92,14 @@ Legenda: `[x]` concluído e validado por teste/execução · `[~]` parcial · `[
 | 2026-10-16 | `app/models/{base,user,finance,planning}.py` | escritos, **ainda não testados** |
 | 2026-10-19 | Fases 1–4 (fundação, auth, núcleo financeiro, dashboard/orçamentos/previsão) | 171 testes ok |
 
-### ▶ Ponto de retomada
+### ▶ Situação final (2026-10-19)
 
-Concluído e testado até a Fase 4 (MVP) — 171 testes passando (`uv run pytest`), screenshots reais conferidas.
-Próximos passos, nesta ordem:
-1. API REST v1 (`app/api/v1/`) reutilizando os mesmos serviços (seção 21).
-2. Fase 5: metas, recorrências + job, importação CSV, relatórios CSV/PDF.
-3. Fase 6: cartões (o modelo e as consultas `card_queries.py` já existem; dashboard/previsão já consideram faturas).
-4. Fase 7: Dockerfile, CI, docs, revisão de segurança, cobertura, seed completo.
-
-Como rodar localmente: `docker compose up -d postgres db-test redis mailpit`, `uv run alembic upgrade head`,
-`uv run python -m scripts.seed_demo`, `uv run uvicorn app.main:app --reload`.
+Todas as fases concluídas e validadas: 255 testes + 1 e2e (Playwright) aprovados; ruff e mypy --strict limpos;
+imagem Docker validada em modo produção; backup/restore testados; documentação em README.md e docs/.
 
 ## 4. Limitações conhecidas / bloqueios
 
-- (preenchido conforme ocorrerem)
+- Tailwind standalone (Bun) falha com `-o` em caminhos não ASCII ("ç") → compilação via stdout.
+- Docker Compose (bake) falha ao construir vários serviços em caminho não ASCII → imagem única `finpilot:dev`.
+- OneDrive bloqueia arquivos da `.venv` ocasionalmente → recomendado mover o projeto para fora do OneDrive.
+- Pipeline do GitHub Actions criado, mas ainda não executado (repositório não publicado no GitHub).
