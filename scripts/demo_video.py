@@ -39,12 +39,20 @@ OVERLAY_JS = """
     const cap = document.createElement('div');
     cap.id = '__demo_caption';
     Object.assign(cap.style, {
-      position: 'fixed', left: '50%', bottom: '28px', transform: 'translateX(-50%)', maxWidth: '78%',
+      position: 'fixed', left: '50%', bottom: '28px', transform: 'translateX(-50%)', maxWidth: '78vw', width: 'max-content', boxSizing: 'border-box',
       padding: '12px 20px', borderRadius: '10px', background: 'rgba(17,17,17,.88)', color: '#fafafa',
       font: '500 17px/1.45 Inter, system-ui, sans-serif', textAlign: 'center', zIndex: 2147483646,
-      pointerEvents: 'none', opacity: '0', transition: 'opacity .25s',
+      pointerEvents: 'none', opacity: '0', transition: 'opacity .25s', margin: '0', border: '0',
+      top: 'auto', right: 'auto',
     });
+    // Popover fica na "top layer": aparece acima de <dialog> modal/drawer abertos.
+    cap.setAttribute('popover', 'manual');
     document.body.appendChild(cap);
+    const raise = () => { try { if (cap.matches(':popover-open')) cap.hidePopover(); cap.showPopover(); } catch (e) {} };
+    window.__raiseCaption = raise;
+    raise();
+    document.addEventListener('htmx:afterSettle', () => setTimeout(raise, 50));
+    document.addEventListener('click', () => setTimeout(raise, 80), true);
     const saved = sessionStorage.getItem('__demo_caption');
     if (saved) { cap.textContent = saved; cap.style.opacity = '1'; }
   };
@@ -54,6 +62,7 @@ OVERLAY_JS = """
     if (!cap) return;
     cap.textContent = text || '';
     cap.style.opacity = text ? '1' : '0';
+    if (window.__raiseCaption) window.__raiseCaption();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install); else install();
 })();
@@ -90,7 +99,9 @@ class Demo:
         locator.scroll_into_view_if_needed()
         box = locator.bounding_box()
         if box:
-            self.page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=18)
+            self.page.mouse.move(
+                box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=18
+            )
         self.wait(250)
 
     def click(self, locator: Locator, pause: int = 700) -> None:
@@ -134,9 +145,13 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
 
     # 1. Apresentação e login
     demo.goto("/")
-    demo.caption("FinPilot — gestão financeira pessoal em Python (FastAPI + PostgreSQL + HTMX)", 2600)
+    demo.caption(
+        "FinPilot — gestão financeira pessoal em Python (FastAPI + PostgreSQL + HTMX)", 2600
+    )
     demo.scroll(500)
-    demo.caption("Contas, cartões, orçamentos, metas, recorrências, importação CSV e previsão de caixa", 2200)
+    demo.caption(
+        "Contas, cartões, orçamentos, metas, recorrências, importação CSV e previsão de caixa", 2200
+    )
     demo.goto("/login")
     demo.caption("Login com sessão segura (cookie HttpOnly, CSRF, rate limiting)", 1200)
     demo.type(p.locator("#f-email"), email)
@@ -146,9 +161,14 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
     demo.wait(1200)
 
     # 2. Dashboard
-    demo.caption("Dashboard: indicadores com o regime explícito — competência, caixa ou projetado", 2600)
+    demo.caption(
+        "Dashboard: indicadores com o regime explícito — competência, caixa ou projetado", 2600
+    )
     demo.scroll(700, steps=8)
-    demo.caption("Receitas × despesas de 12 meses, gastos por categoria e evolução do saldo (dados reais do banco)", 2600)
+    demo.caption(
+        "Receitas × despesas de 12 meses, gastos por categoria e evolução do saldo (dados reais do banco)",
+        2600,
+    )
     demo.scroll(700, steps=8)
     demo.caption("Orçamento por categoria e fluxo de caixa projetado para 90 dias", 2400)
     demo.scroll(-1400, steps=8)
@@ -165,7 +185,9 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
     demo.caption("Transações: filtros, busca, totalizadores e paginação feitos no banco", 2200)
     demo.click(p.get_by_role("link", name="Novo lançamento").first)
     drawer = demo.drawer()
-    demo.caption("Novo lançamento em um painel lateral — validação no backend, valores em pt-BR", 1800)
+    demo.caption(
+        "Novo lançamento em um painel lateral — validação no backend, valores em pt-BR", 1800
+    )
     demo.type(drawer.locator("#f-description"), "Supermercado do mês")
     demo.type(drawer.locator("#f-amount"), "487,90")
     demo.select_containing(drawer.locator("#f-account_id"), "Nubank")
@@ -199,7 +221,10 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
 
     # 6. Cartão parcelado
     demo.goto("/app/cartoes")
-    demo.caption("Cartões: limite utilizado, fatura atual e valores a pagar — limite não é saldo bancário", 2400)
+    demo.caption(
+        "Cartões: limite utilizado, fatura atual e valores a pagar — limite não é saldo bancário",
+        2400,
+    )
     demo.click(p.get_by_role("link", name="Nova compra").first)
     drawer = demo.drawer()
     demo.type(drawer.locator("#f-description"), "Notebook")
@@ -208,10 +233,15 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
     demo.type(drawer.locator("#f-installments"), "3")
     p.keyboard.press("Tab")
     demo.wait(1200)
-    demo.caption("Parcelas exatas ao centavo: 333,34 + 333,33 + 333,33, cada uma na fatura certa", 2800)
+    demo.caption(
+        "Parcelas exatas ao centavo: 333,34 + 333,33 + 333,33, cada uma na fatura certa", 2800
+    )
     demo.submit_drawer()
     demo.click(p.get_by_role("link", name="Faturas e compras").first)
-    demo.caption("Faturas por fechamento e vencimento; pagamento é saída de caixa, sem contar a despesa duas vezes", 2800)
+    demo.caption(
+        "Faturas por fechamento e vencimento; pagamento é saída de caixa, sem contar a despesa duas vezes",
+        2800,
+    )
 
     # 7. Orçamentos e metas
     demo.goto("/app/orcamentos")
@@ -243,7 +273,9 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
     p.wait_for_load_state("networkidle")
     demo.wait(600)
     p.locator("#previa").scroll_into_view_if_needed()
-    demo.caption("Prévia validada: linhas inválidas com o motivo e duplicatas marcadas para revisão", 2800)
+    demo.caption(
+        "Prévia validada: linhas inválidas com o motivo e duplicatas marcadas para revisão", 2800
+    )
     demo.click(p.get_by_role("button", name="Confirmar importação"), pause=400)
     demo.click(p.locator("#confirm-dialog [data-confirm-ok]"), pause=300)
     p.wait_for_load_state("networkidle")
@@ -266,7 +298,7 @@ def run(demo: Demo, email: str, password: str, csv_path: Path) -> None:  # noqa:
     p.wait_for_load_state("networkidle")
     demo.wait(1800)
     demo.scroll(700, steps=8)
-    demo.caption("FinPilot · 257 testes automatizados, segurança OWASP, Docker e CI", 3200)
+    demo.caption("FinPilot · 257 testes · segurança OWASP · Docker · CI", 3200)
     demo.click(p.locator("[aria-controls=theme-menu]"))
     demo.click(p.locator("#theme-menu button", has_text="Claro"), pause=300)
     demo.caption("", 600)
@@ -285,7 +317,7 @@ def main() -> None:
     csv_path.write_text(CSV_SAMPLE, encoding="utf-8")
 
     with sync_playwright() as pw:
-        browser = pw.chromium.launch()
+        browser = pw.chromium.launch(args=["--lang=pt-BR"])
         context = browser.new_context(
             viewport={"width": 1280, "height": 800},
             record_video_dir=str(tmp),
@@ -297,7 +329,12 @@ def main() -> None:
         context.add_init_script(OVERLAY_JS)
         page = context.new_page()
         try:
-            run(Demo(page, args.base_url), os.environ["DEMO_EMAIL"], os.environ["DEMO_PASSWORD"], csv_path)
+            run(
+                Demo(page, args.base_url),
+                os.environ["DEMO_EMAIL"],
+                os.environ["DEMO_PASSWORD"],
+                csv_path,
+            )
         finally:
             video = page.video
             context.close()

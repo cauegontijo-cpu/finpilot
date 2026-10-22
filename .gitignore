@@ -19,3 +19,5 @@ Thumbs.db
 backups/
 test-results/
 coverage.json
+imagens-post/
+docs/video/*.webm
