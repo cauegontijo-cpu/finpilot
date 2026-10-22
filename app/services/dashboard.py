@@ -25,6 +25,9 @@ from app.services.budgets import BudgetOverview, BudgetService
 from app.services.card_queries import StatementBalance, card_debt, statement_balances
 from app.services.forecast import Forecast, ForecastService
 
+#: Tons de cinza para séries categóricas (a cor fica reservada para alertas).
+CHART_GRAYS = ["--cat-1", "--cat-2", "--cat-3", "--cat-4", "--cat-5", "--cat-6", "--cat-7"]
+
 
 @dataclass
 class UpcomingItem:
@@ -175,12 +178,12 @@ class DashboardService:
                 {
                     "label": "Receitas",
                     "data": [m.income for m in data.history],
-                    "color": "positive",
+                    "color": "--chart-1",
                 },
                 {
                     "label": "Despesas",
                     "data": [m.expense for m in data.history],
-                    "color": "negative",
+                    "color": "--chart-2",
                 },
             ],
         }
@@ -207,7 +210,7 @@ class DashboardService:
                 {
                     "label": "Despesas",
                     "data": [c.settled for c in top] + ([others] if others else []),
-                    "color": [c.color for c in top] + (["#94a3b8"] if others else []),
+                    "color": CHART_GRAYS[: len(top)] + (["--chart-3"] if others else []),
                 }
             ],
         }
@@ -228,7 +231,7 @@ class DashboardService:
                 {
                     "label": "Saldo consolidado",
                     "data": [v for _, v in evolution],
-                    "color": "primary",
+                    "color": "--chart-1",
                 }
             ],
         }
@@ -253,7 +256,7 @@ class DashboardService:
                         if i.level == "over"
                         else "warning"
                         if i.level == "warning"
-                        else "primary"
+                        else "--chart-2"
                         for i in items
                     ],
                 }
@@ -280,12 +283,12 @@ class DashboardService:
                 {
                     "label": "Entradas previstas",
                     "data": [i for _, i, _ in monthly],
-                    "color": "positive",
+                    "color": "--chart-1",
                 },
                 {
                     "label": "Saídas previstas",
                     "data": [o for _, _, o in monthly],
-                    "color": "negative",
+                    "color": "--chart-2",
                 },
             ],
         }

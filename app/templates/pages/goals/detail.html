@@ -12,7 +12,7 @@
 <div id="goal-page" hx-get="/app/metas/{{ g.id }}" hx-trigger="refresh from:body" hx-select="#goal-page" hx-target="this" hx-swap="outerHTML" class="grid gap-6 xl:grid-cols-3">
   <section class="card card-pad xl:col-span-2">
     <div class="flex items-start gap-4">
-      <span class="inline-flex size-14 items-center justify-center rounded-2xl text-white {{ color_class(g.color) }}">{{ icon(g.icon, "size-7") }}</span>
+      <span class="inline-flex size-14 items-center justify-center rounded-lg bg-surface-3 text-fg-2">{{ icon(g.icon, "size-7") }}</span>
       <div class="flex-1">
         <h2 class="text-xl font-bold">{{ g.name }}</h2>
         {% if g.description %}<p class="mt-1 text-sm text-muted">{{ g.description }}</p>{% endif %}
@@ -31,7 +31,7 @@
       <div><dt class="text-xs text-muted">Estimativa de conclusão</dt><dd class="font-semibold">{% if p.reached %}Concluída{% elif p.estimated_completion %}{{ p.estimated_completion|date_br }}{% else %}Indeterminada{% endif %}</dd></div>
     </dl>
     {% if p.required_monthly %}
-    <p class="mt-4 rounded-xl px-4 py-3 text-sm {{ 'bg-positive-soft text-positive' if p.on_track else 'bg-warning-soft text-warning' }}">
+    <p class="mt-4 rounded-md px-4 py-3 text-sm {{ 'bg-positive-soft text-positive' if p.on_track else 'bg-warning-soft text-warning' }}">
       Para cumprir o prazo, reserve <strong class="num">{{ p.required_monthly|brl }}</strong> por mês. {{ "Você está no ritmo." if p.on_track else "O ritmo atual está abaixo do necessário." }}
     </p>
     {% endif %}

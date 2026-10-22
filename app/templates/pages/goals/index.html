@@ -14,7 +14,7 @@
     <p class="text-xs text-muted sm:col-span-3">Reservas são gerenciais: não movimentam dinheiro nem reduzem o saldo das contas.</p>
   </section>
   {% if summary.over_reserved %}
-  <div class="mb-6 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning" role="alert">{{ icon("triangle-alert", "mt-0.5 size-4 shrink-0") }} O total reservado em metas é maior que o dinheiro disponível nas contas. Revise suas reservas.</div>
+  <div class="mb-6 flex items-start gap-3 rounded-md border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning" role="alert">{{ icon("triangle-alert", "mt-0.5 size-4 shrink-0") }} O total reservado em metas é maior que o dinheiro disponível nas contas. Revise suas reservas.</div>
   {% endif %}
 
   {% if items %}
@@ -23,7 +23,7 @@
     {% set g = p.goal %}
     <a href="/app/metas/{{ g.id }}" class="card card-pad block transition hover:shadow-lift {{ 'opacity-60' if g.status.value == 'archived' }}">
       <div class="flex items-start gap-3">
-        <span class="inline-flex size-11 items-center justify-center rounded-xl text-white {{ color_class(g.color) }}">{{ icon(g.icon, "size-5") }}</span>
+        <span class="inline-flex size-11 items-center justify-center rounded-md bg-surface-3 text-fg-2">{{ icon(g.icon, "size-5") }}</span>
         <div class="min-w-0 flex-1">
           <h2 class="truncate font-semibold">{{ g.name }}</h2>
           <p class="text-xs text-muted">{% if g.deadline %}Prazo {{ g.deadline|date_br }}{% else %}Sem prazo{% endif %}</p>

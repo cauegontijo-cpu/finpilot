@@ -47,7 +47,7 @@
             <td class="text-right">
               <div class="relative inline-block">
                 <button type="button" class="btn-icon" data-menu-trigger aria-controls="tx-menu-{{ t.id }}" aria-expanded="false" aria-label="Ações de {{ t.description }}">{{ icon("ellipsis") }}</button>
-                <div id="tx-menu-{{ t.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-52 rounded-xl border border-line bg-surface p-1 text-left shadow-lift">
+                <div id="tx-menu-{{ t.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-52 rounded-md border border-line bg-surface p-1 text-left shadow-lift">
                   {% if not is_transfer and t.type.value != "card_payment" and t.status.value != "cancelled" %}
                   <a href="/app/transacoes/{{ t.id }}/editar" hx-get="/app/transacoes/{{ t.id }}/editar" hx-target="#drawer-body" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("pencil") }} Editar</a>
                   {% if t.status.value == "planned" %}

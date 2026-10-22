@@ -31,7 +31,7 @@
     {% set tone = "negative" if i.level == "over" else ("warning" if i.level == "warning" else "primary") %}
     <article class="card card-pad">
       <header class="flex items-start gap-3">
-        <span class="inline-flex size-10 items-center justify-center rounded-xl text-white {{ color_class(i.budget.category.color) }}">{{ icon(i.budget.category.icon) }}</span>
+        <span class="inline-flex size-10 items-center justify-center rounded-md bg-surface-3 text-fg-2">{{ icon(i.budget.category.icon) }}</span>
         <div class="min-w-0 flex-1">
           <h2 class="truncate font-semibold">{{ i.budget.category.name }}</h2>
           <p class="text-xs text-muted">Limite <span class="num">{{ i.limit|brl }}</span></p>

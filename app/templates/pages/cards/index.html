@@ -13,14 +13,13 @@
     {% for s in summaries %}
     {% set c = s.card %}
     <article class="card overflow-hidden">
-      <div class="relative p-6 text-white {{ color_class(c.color) }}">
-        <div class="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-white/10"></div>
+      <div class="border-b border-line bg-surface-2 p-5 text-fg">
         <div class="flex items-start justify-between">
-          <div><p class="text-sm opacity-80">{{ c.institution or "Cartão de crédito" }}</p><h2 class="text-lg font-bold">{{ c.name }}</h2></div>
-          {{ icon("credit-card", "size-7 opacity-80") }}
+          <div><p class="text-xs text-muted">{{ c.institution or "Cartão de crédito" }}</p><h2 class="text-base font-semibold">{{ c.name }}</h2></div>
+          {{ icon("credit-card", "size-5 text-muted") }}
         </div>
-        <p class="num mt-8 tracking-[0.2em] opacity-90">•••• •••• •••• {{ c.last4 or "••••" }}</p>
-        <p class="mt-2 text-xs opacity-80">Fecha dia {{ c.closing_day }} · vence dia {{ c.due_day }}</p>
+        <p class="num mt-6 text-sm tracking-[0.15em] text-fg-2">•••• •••• •••• {{ c.last4 or "••••" }}</p>
+        <p class="mt-1 text-xs text-muted">Fecha dia {{ c.closing_day }} · vence dia {{ c.due_day }}</p>
       </div>
       <div class="card-pad space-y-4">
         <div>
@@ -29,11 +28,11 @@
           <p class="mt-1.5 text-xs text-muted">Disponível: <strong class="num {{ 'text-negative' if s.available < 0 else 'text-positive' }}">{{ s.available|brl }}</strong></p>
         </div>
         <div class="grid grid-cols-2 gap-3 text-sm">
-          <div class="rounded-xl bg-surface-2 p-3">
+          <div class="rounded-md bg-surface-2 p-3">
             <p class="text-xs text-muted">Fatura atual {{ regime("competencia") }}</p>
             {% if s.current %}<p class="num mt-1 font-semibold">{{ s.current.total_cents|brl }}</p><p class="text-xs text-muted">fecha {{ s.current.closing_date|date_br }}</p>{% else %}<p class="mt-1 text-muted">Sem lançamentos</p>{% endif %}
           </div>
-          <div class="rounded-xl bg-surface-2 p-3">
+          <div class="rounded-md bg-surface-2 p-3">
             <p class="text-xs text-muted">A pagar {{ regime("caixa") }}</p>
             {% if s.next_due %}<p class="num mt-1 font-semibold {{ 'text-negative' if s.next_due.due_date < today }}">{{ s.next_due.remaining_cents|brl }}</p><p class="text-xs {{ 'font-semibold text-negative' if s.next_due.due_date < today else 'text-muted' }}">vence {{ s.next_due.due_date|date_br }}</p>{% else %}<p class="mt-1 text-muted">Nada pendente</p>{% endif %}
           </div>

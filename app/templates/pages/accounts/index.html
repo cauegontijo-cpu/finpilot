@@ -22,14 +22,14 @@
     {% for a in active %}
     <article class="card card-pad flex flex-col">
       <div class="flex items-start gap-3">
-        <span class="inline-flex size-11 items-center justify-center rounded-xl text-white {{ color_class(a.color) }}">{{ icon(a.icon, "size-5") }}</span>
+        <span class="inline-flex size-11 items-center justify-center rounded-md bg-surface-3 text-fg-2">{{ icon(a.icon, "size-5") }}</span>
         <div class="min-w-0 flex-1">
           <h2 class="truncate font-semibold">{{ a.name }}</h2>
           <p class="truncate text-xs text-muted">{{ type_labels[a.type] }}{% if a.institution %} · {{ a.institution }}{% endif %}</p>
         </div>
         <div class="relative">
           <button type="button" class="btn-icon" data-menu-trigger aria-controls="acc-menu-{{ a.id }}" aria-expanded="false" aria-label="Ações da conta {{ a.name }}">{{ icon("ellipsis") }}</button>
-          <div id="acc-menu-{{ a.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-48 rounded-xl border border-line bg-surface p-1 shadow-lift">
+          <div id="acc-menu-{{ a.id }}" data-menu hidden class="absolute right-0 z-10 mt-1 w-48 rounded-md border border-line bg-surface p-1 shadow-lift">
             <a href="/app/contas/{{ a.id }}/editar" hx-get="/app/contas/{{ a.id }}/editar" hx-target="#drawer-body" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("pencil") }} Editar</a>
             <a href="/app/transacoes?account_id={{ a.id }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("list") }} Ver lançamentos</a>
             <form method="post" action="/app/contas/{{ a.id }}/arquivar" hx-post="/app/contas/{{ a.id }}/arquivar">{{ csrf() }}<button type="submit" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3" data-confirm="Arquivar a conta “{{ a.name }}”? O histórico será mantido.">{{ icon("archive") }} Arquivar</button></form>

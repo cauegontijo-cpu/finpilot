@@ -72,14 +72,14 @@
 {% macro alert(message, kind="error") -%}
 {% set tones = {"error": "border-negative/30 bg-negative-soft text-negative", "success": "border-positive/30 bg-positive-soft text-positive", "warning": "border-warning/30 bg-warning-soft text-warning", "info": "border-info/30 bg-info-soft text-info"} %}
 {% set icons = {"error": "circle-alert", "success": "circle-check", "warning": "triangle-alert", "info": "info"} %}
-<div class="flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm {{ tones[kind] }}" role="{{ 'alert' if kind == 'error' else 'status' }}">
+<div class="flex items-start gap-2.5 rounded-md border px-3.5 py-3 text-sm {{ tones[kind] }}" role="{{ 'alert' if kind == 'error' else 'status' }}">
   {{ icon(icons[kind], "mt-0.5 size-4 shrink-0") }}<p>{{ message }}</p>
 </div>
 {%- endmacro %}
 
 {% macro empty_state(title, text, icon_name="inbox", action_url=None, action_label=None, dialog_id=None) -%}
 <div class="flex flex-col items-center justify-center px-6 py-14 text-center">
-  <span class="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">{{ icon(icon_name, "size-6") }}</span>
+  <span class="mb-4 inline-flex size-14 items-center justify-center rounded-lg bg-primary-soft text-primary">{{ icon(icon_name, "size-6") }}</span>
   <h3 class="text-base font-semibold">{{ title }}</h3>
   <p class="mt-1 max-w-sm text-sm text-muted">{{ text }}</p>
   {% if action_url and action_label %}
@@ -91,7 +91,7 @@
 {% macro progress(pct, tone="primary", planned_pct=0, label="Progresso") -%}
 {% set width = [[pct, 0]|max, 100]|min %}
 {% set total = [[pct + planned_pct, 0]|max, 100]|min %}
-{% set color = {"primary": "bg-primary", "positive": "bg-positive", "warning": "bg-warning", "negative": "bg-negative", "accent": "bg-accent"}[tone] %}
+{% set color = {"primary": "bg-fg-2", "positive": "bg-positive", "warning": "bg-warning", "negative": "bg-negative", "accent": "bg-fg-2"}[tone] %}
 <div class="progress" role="progressbar" aria-label="{{ label }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ width|round(0)|int }}">
   {% if planned_pct %}<span class="{{ color }} bar-planned opacity-40 {{ width_class(total) }}"></span>{% endif %}
   <span class="{{ color }} {{ width_class(width) }}"></span>

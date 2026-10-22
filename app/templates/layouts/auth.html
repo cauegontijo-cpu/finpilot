@@ -1,25 +1,23 @@
 {% extends "layouts/base.html" %}
 {% block body %}
-<div class="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-  <aside class="relative hidden overflow-hidden bg-brand text-on-brand lg:flex lg:flex-col lg:justify-between lg:p-12">
-    <div class="pointer-events-none absolute -right-32 -top-32 size-[28rem] rounded-full bg-accent/25 blur-3xl"></div>
-    <div class="pointer-events-none absolute -bottom-40 -left-20 size-[26rem] rounded-full bg-primary/30 blur-3xl"></div>
-    <a href="/" class="relative flex items-center gap-2.5 text-lg font-bold text-white">
+<div class="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+  <aside class="hidden border-r border-line bg-surface-2 lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-10">
+    <a href="/" class="flex items-center gap-2 text-base font-semibold text-fg">
       {% include "components/logo.html" %} FinPilot
     </a>
-    <div class="relative max-w-md">
-      <p class="text-3xl font-semibold leading-tight text-white">Clareza financeira para decidir com confiança.</p>
-      <ul class="mt-8 space-y-4 text-sm">
-        <li class="flex gap-3">{{ icon("shield-check", "size-5 text-positive") }} Dados isolados por usuário, sessões seguras e auditoria das operações.</li>
-        <li class="flex gap-3">{{ icon("chart-line", "size-5 text-positive") }} Competência, caixa e projeção — sempre identificados em cada indicador.</li>
-        <li class="flex gap-3">{{ icon("credit-card", "size-5 text-positive") }} Cartões com parcelas exatas ao centavo, sem dupla contagem.</li>
+    <div class="max-w-sm">
+      <p class="text-2xl font-semibold leading-snug tracking-tight text-fg">Suas contas, cartões e planos num só lugar — com números que batem.</p>
+      <ul class="mt-8 space-y-3 text-sm text-fg-2">
+        <li class="flex gap-3">{{ icon("check", "mt-0.5 size-4 shrink-0 text-muted") }} Cada indicador informa se é competência, caixa ou projeção.</li>
+        <li class="flex gap-3">{{ icon("check", "mt-0.5 size-4 shrink-0 text-muted") }} Parcelas do cartão divididas ao centavo, sem contar a fatura duas vezes.</li>
+        <li class="flex gap-3">{{ icon("check", "mt-0.5 size-4 shrink-0 text-muted") }} Seus dados ficam isolados e cada operação é registrada.</li>
       </ul>
     </div>
-    <p class="relative text-xs text-on-brand/60">Projeto de demonstração técnica · dados fictícios no ambiente de desenvolvimento.</p>
+    <p class="text-xs text-muted">Projeto de portfólio · dados fictícios no ambiente de desenvolvimento.</p>
   </aside>
   <main id="conteudo" class="flex items-center justify-center px-4 py-10 sm:px-8">
-    <div class="w-full max-w-md">
-      <a href="/" class="mb-8 flex items-center gap-2 text-lg font-bold lg:hidden">{% include "components/logo.html" %} FinPilot</a>
+    <div class="w-full max-w-sm">
+      <a href="/" class="mb-10 flex items-center gap-2 text-base font-semibold lg:hidden">{% include "components/logo.html" %} FinPilot</a>
       {% block content %}{% endblock %}
     </div>
   </main>

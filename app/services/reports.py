@@ -26,6 +26,7 @@ from app.services.analytics import AnalyticsService, Scope
 from app.services.audit import AuditService
 from app.services.budgets import BudgetService
 from app.services.card_queries import statement_balances
+from app.services.dashboard import CHART_GRAYS
 from app.services.recurrences import RecurrenceService
 
 MAX_MONTHS = 24
@@ -163,8 +164,8 @@ class ReportService:
             "type": "bar",
             "labels": [m.month.short_label() for m in months],
             "datasets": [
-                {"label": "Receitas", "data": [m.income for m in months], "color": "positive"},
-                {"label": "Despesas", "data": [m.expense for m in months], "color": "negative"},
+                {"label": "Receitas", "data": [m.income for m in months], "color": "--chart-1"},
+                {"label": "Despesas", "data": [m.expense for m in months], "color": "--chart-2"},
             ],
         }
         return r
@@ -197,7 +198,7 @@ class ReportService:
                         {
                             "label": "Despesas",
                             "data": [i.settled for i in items[:8]],
-                            "color": [i.color for i in items[:8]],
+                            "color": CHART_GRAYS[: len(items[:8])],
                         }
                     ],
                 }
@@ -236,7 +237,7 @@ class ReportService:
             "labels": [m.short_label() for m in months],
             "legend": False,
             "datasets": [
-                {"label": "Consolidado", "data": [row[-1] for row in r.rows], "color": "primary"}
+                {"label": "Consolidado", "data": [row[-1] for row in r.rows], "color": "--chart-1"}
             ],
         }
         return r

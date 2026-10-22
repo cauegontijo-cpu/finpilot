@@ -3,7 +3,7 @@
 <form method="post" action="/app/metas/{{ goal.id }}/alocar" hx-post="/app/metas/{{ goal.id }}/alocar" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
   {{ csrf() }}
   {% if error %}{{ alert(error) }}{% endif %}
-  <div class="rounded-xl bg-surface-2 px-4 py-3 text-sm">
+  <div class="rounded-md bg-surface-2 px-4 py-3 text-sm">
     Livre para reservar: <strong class="num {{ 'text-negative' if summary.free_cents < 0 }}">{{ summary.free_cents|brl }}</strong>
     <span class="block text-xs text-muted">Disponível nas contas {{ summary.available_cents|brl }} − reservado {{ summary.reserved_cents|brl }}</span>
   </div>

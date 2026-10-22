@@ -83,7 +83,7 @@ def forecast(request: Request, session: VerifiedSession, svc: Svc) -> Response:
             {
                 "label": "Saldo projetado",
                 "data": [b for _, b in points],
-                "color": "primary",
+                "color": "--chart-1",
                 "pointRadius": 0,
                 "stepped": True,
             }

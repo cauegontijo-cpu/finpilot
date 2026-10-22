@@ -17,7 +17,7 @@
       <ul class="divide-y divide-line">
         {% for c in items %}
         <li class="flex items-center gap-3 px-5 py-3">
-          <span class="inline-flex size-9 items-center justify-center rounded-lg text-white {{ color_class(c.color) }}">{{ icon(c.icon) }}</span>
+          <span class="inline-flex size-9 items-center justify-center rounded-lg bg-surface-3 text-fg-2">{{ icon(c.icon) }}</span>
           <span class="flex-1 text-sm font-medium">{{ c.name }}</span>
           <a href="/app/categorias/{{ c.id }}/editar" hx-get="/app/categorias/{{ c.id }}/editar" hx-target="#drawer-body" class="btn-icon" aria-label="Editar {{ c.name }}">{{ icon("pencil") }}</a>
           <form method="post" action="/app/categorias/{{ c.id }}/arquivar" hx-post="/app/categorias/{{ c.id }}/arquivar">{{ csrf() }}<button type="submit" class="btn-icon" aria-label="Arquivar {{ c.name }}" data-confirm="Arquivar “{{ c.name }}”? Ela não aparecerá em novos lançamentos, mas o histórico é preservado.">{{ icon("archive") }}</button></form>

@@ -6,14 +6,14 @@
 <p class="mb-6 max-w-3xl text-sm text-muted">Todos os relatórios usam os mesmos cálculos do dashboard, informam o critério contábil e podem ser exportados em CSV (protegido contra fórmulas maliciosas), PDF ou impressos.</p>
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   {% for key, (title, regime) in reports.items() %}
-  <a href="/app/relatorios/{{ key }}" class="card card-pad block transition hover:shadow-lift">
-    <span class="inline-flex size-10 items-center justify-center rounded-xl bg-primary-soft text-primary">{{ icon(icons[key], "size-5") }}</span>
+  <a href="/app/relatorios/{{ key }}" class="card card-pad block transition hover:shadow-soft">
+    <span class="inline-flex size-10 items-center justify-center rounded-md bg-primary-soft text-primary">{{ icon(icons[key], "size-5") }}</span>
     <h2 class="mt-4 font-semibold">{{ title }}</h2>
     <p class="mt-1 text-xs text-muted">Critério: {{ regime }}</p>
   </a>
   {% endfor %}
-  <a href="/app/previsao" class="card card-pad block transition hover:shadow-lift">
-    <span class="inline-flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent">{{ icon("trending-up", "size-5") }}</span>
+  <a href="/app/previsao" class="card card-pad block transition hover:shadow-soft">
+    <span class="inline-flex size-10 items-center justify-center rounded-md bg-accent-soft text-accent">{{ icon("trending-up", "size-5") }}</span>
     <h2 class="mt-4 font-semibold">Previsão de fluxo de caixa</h2>
     <p class="mt-1 text-xs text-muted">Critério: Projetado (determinístico)</p>
   </a>

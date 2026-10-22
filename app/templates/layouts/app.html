@@ -12,36 +12,36 @@
   ("/app/configuracoes", "settings", "Configurações"),
 ] %}
 {% block body %}
-<div class="min-h-dvh lg:pl-64">
-  <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-brand text-on-brand" data-open="false" aria-label="Navegação principal">
-    <div class="flex h-16 items-center gap-2.5 px-5 text-lg font-bold text-white">
+<div class="min-h-dvh lg:pl-60">
+  <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-surface text-fg" data-open="false" aria-label="Navegação principal">
+    <div class="flex h-14 items-center gap-2 px-4 text-base font-semibold">
       {% include "components/logo.html" %} FinPilot
     </div>
-    <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+    <nav class="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
       {% for href, ic, label in nav %}
       {% set active = (path == href) or (href != "/app" and path.startswith(href)) %}
-      <a href="{{ href }}" class="nav-link" {% if active %}aria-current="page"{% endif %}>{{ icon(ic, "size-[18px]") }} {{ label }}</a>
+      <a href="{{ href }}" class="nav-link" {% if active %}aria-current="page"{% endif %}>{{ icon(ic, "size-4 text-muted") }} {{ label }}</a>
       {% endfor %}
     </nav>
-    <div class="border-t border-white/10 p-4">
-      <a href="/app/transferencias" class="nav-link" {% if path.startswith('/app/transferencias') %}aria-current="page"{% endif %}>{{ icon("arrow-left-right", "size-[18px]") }} Transferências</a>
-      <a href="/app/importacoes" class="nav-link" {% if path.startswith('/app/importacoes') %}aria-current="page"{% endif %}>{{ icon("upload", "size-[18px]") }} Importar extrato</a>
-      <a href="/app/auditoria" class="nav-link" {% if path.startswith('/app/auditoria') %}aria-current="page"{% endif %}>{{ icon("history", "size-[18px]") }} Auditoria</a>
+    <div class="space-y-0.5 border-t border-line px-3 py-3">
+      <a href="/app/transferencias" class="nav-link" {% if path.startswith('/app/transferencias') %}aria-current="page"{% endif %}>{{ icon("arrow-left-right", "size-4 text-muted") }} Transferências</a>
+      <a href="/app/importacoes" class="nav-link" {% if path.startswith('/app/importacoes') %}aria-current="page"{% endif %}>{{ icon("upload", "size-4 text-muted") }} Importar extrato</a>
+      <a href="/app/auditoria" class="nav-link" {% if path.startswith('/app/auditoria') %}aria-current="page"{% endif %}>{{ icon("history", "size-4 text-muted") }} Auditoria</a>
     </div>
   </aside>
-  <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/50 lg:hidden" hidden></div>
+  <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/30 lg:hidden" hidden></div>
 
-  <header class="app-header sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-    <div class="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+  <header class="app-header sticky top-0 z-20 border-b border-line bg-bg">
+    <div class="flex h-14 items-center gap-3 px-4 sm:px-6 lg:px-8">
       <button type="button" class="btn-icon lg:hidden" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">{{ icon("menu", "size-5") }}</button>
-      <h1 class="min-w-0 truncate text-lg font-semibold tracking-tight">{% block page_title %}{% endblock %}</h1>
+      <h1 class="min-w-0 truncate text-base font-semibold">{% block page_title %}{% endblock %}</h1>
       <div class="ml-auto flex items-center gap-2">
         {% block header_actions %}{% endblock %}
         <div class="relative">
           <button type="button" class="btn-icon" data-menu-trigger aria-controls="theme-menu" aria-expanded="false" aria-label="Tema">
             {{ icon({"light": "sun", "dark": "moon"}.get(theme, "monitor"), "size-[18px]") }}
           </button>
-          <div id="theme-menu" data-menu hidden class="absolute right-0 mt-2 w-44 rounded-xl border border-line bg-surface p-1 shadow-lift">
+          <div id="theme-menu" data-menu hidden class="absolute right-0 mt-2 w-44 rounded-md border border-line bg-surface p-1 shadow-lift">
             {% for value, label, ic in [("light", "Claro", "sun"), ("dark", "Escuro", "moon"), ("system", "Sistema", "monitor")] %}
             <form method="post" action="/preferencias/tema">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="theme" value="{{ value }}"><input type="hidden" name="next" value="{{ path }}">
@@ -51,12 +51,12 @@
           </div>
         </div>
         <div class="relative">
-          <button type="button" class="flex items-center gap-2 rounded-xl px-1.5 py-1 hover:bg-surface-3" data-menu-trigger aria-controls="user-menu" aria-expanded="false">
-            <span class="inline-flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white dark:text-[#06122b]">{{ current_user.full_name[:1]|upper }}</span>
+          <button type="button" class="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-surface-3" data-menu-trigger aria-controls="user-menu" aria-expanded="false">
+            <span class="inline-flex size-7 items-center justify-center rounded-full bg-surface-3 text-xs font-semibold text-fg-2">{{ current_user.full_name[:1]|upper }}</span>
             <span class="hidden text-sm font-medium sm:block">{{ current_user.first_name }}</span>
             {{ icon("chevron-down", "size-4 text-muted") }}
           </button>
-          <div id="user-menu" data-menu hidden class="absolute right-0 mt-2 w-60 rounded-xl border border-line bg-surface p-1 shadow-lift">
+          <div id="user-menu" data-menu hidden class="absolute right-0 mt-2 w-60 rounded-md border border-line bg-surface p-1 shadow-lift">
             <div class="px-3 py-2"><p class="truncate text-sm font-semibold">{{ current_user.full_name }}</p><p class="truncate text-xs text-muted">{{ current_user.email }}</p></div>
             <div class="divider my-1"></div>
             <a href="/app/configuracoes" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-3">{{ icon("user") }} Perfil e segurança</a>

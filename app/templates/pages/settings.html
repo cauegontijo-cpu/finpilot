@@ -58,7 +58,7 @@
       <ul class="divide-y divide-line border-t border-line">
         {% for s in sessions %}
         <li class="flex items-center gap-4 px-5 py-4 sm:px-6">
-          <span class="inline-flex size-10 items-center justify-center rounded-xl bg-surface-3 text-muted">{{ icon("monitor-smartphone", "size-5") }}</span>
+          <span class="inline-flex size-10 items-center justify-center rounded-md bg-surface-3 text-muted">{{ icon("monitor-smartphone", "size-5") }}</span>
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ s.user_agent or "Dispositivo desconhecido" }}</p>
             <p class="text-xs text-muted">IP {{ s.ip_address or "—" }} · último acesso {{ s.last_seen_at|date_br }}</p>

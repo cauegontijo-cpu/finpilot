@@ -3,7 +3,7 @@
 <form method="post" action="/app/faturas/{{ statement.id }}/pagar" hx-post="/app/faturas/{{ statement.id }}/pagar" hx-target="#drawer-body" class="space-y-5 px-6 py-6" novalidate>
   {{ csrf() }}{{ idem() }}
   {% if error %}{{ alert(error) }}{% endif %}
-  <div class="rounded-xl bg-surface-2 px-4 py-3 text-sm">Saldo devido: <strong class="num">{{ [balance.remaining_cents, 0]|max|brl }}</strong> · vencimento {{ statement.due_date|date_br }}</div>
+  <div class="rounded-md bg-surface-2 px-4 py-3 text-sm">Saldo devido: <strong class="num">{{ [balance.remaining_cents, 0]|max|brl }}</strong> · vencimento {{ statement.due_date|date_br }}</div>
   <div>
     <label class="label" for="f-account_id">Conta de origem <span class="text-negative" aria-hidden="true">*</span></label>
     <select id="f-account_id" name="account_id" class="input" required>

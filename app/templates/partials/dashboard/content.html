@@ -11,28 +11,27 @@
   {# ------------------------------------------------ KPIs #}
   {% set cur = d.current %}{% set prev = d.previous %}
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principais">
-    <article class="card card-pad relative overflow-hidden bg-brand text-on-brand xl:col-span-1">
-      <div class="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/40 blur-2xl"></div>
-      <p class="relative flex items-center gap-2 text-sm text-on-brand/80">{{ icon("wallet") }} Saldo disponível <span class="regime border-white/20 text-on-brand/70">Saldo realizado</span></p>
-      <p class="num relative mt-2 text-3xl font-bold tracking-tight text-white">{{ d.balance|brl }}</p>
+    <article class="card card-pad">
+      <p class="flex items-center gap-2 text-sm text-muted">Saldo disponível {{ regime("saldo") }}</p>
+      <p class="num mt-2 text-2xl font-semibold tracking-tight {{ 'text-negative' if d.balance < 0 }}">{{ d.balance|brl }}</p>
       {% if d.reserved_goals %}
-      <p class="relative mt-2 text-xs text-on-brand/75">Reservado em metas: <span class="num">{{ d.reserved_goals|brl }}</span> · Livre: <span class="num font-semibold {{ 'text-[#fb7f93]' if d.free_balance < 0 }}">{{ d.free_balance|brl }}</span></p>
+      <p class="mt-1 text-xs text-muted">Reservado em metas <span class="num">{{ d.reserved_goals|brl }}</span> · livre <span class="num font-medium {{ 'text-negative' if d.free_balance < 0 else 'text-fg-2' }}">{{ d.free_balance|brl }}</span></p>
       {% else %}
-      <p class="relative mt-2 text-xs text-on-brand/75">Contas ativas{% if d.scope.account_id %} (filtrada){% endif %}</p>
+      <p class="mt-1 text-xs text-muted">Soma das contas ativas{% if d.scope.account_id %} (filtrada){% endif %}</p>
       {% endif %}
     </article>
     {% for label, value, previous_value, tone, ic in [("Receitas do mês", cur.income, prev.income, "positive", "trending-up"), ("Despesas do mês", cur.expense, prev.expense, "negative", "trending-down")] %}
     <article class="card card-pad">
-      <p class="flex items-center gap-2 text-sm text-muted"><span class="inline-flex size-7 items-center justify-center rounded-lg bg-{{ tone }}-soft text-{{ tone }}">{{ icon(ic) }}</span>{{ label }} {{ regime("competencia") }}</p>
-      <p class="num mt-2 text-2xl font-bold tracking-tight">{{ value|brl }}</p>
+      <p class="flex items-center gap-2 text-sm text-muted">{{ label }} {{ regime("competencia") }}</p>
+      <p class="num mt-2 text-2xl font-semibold tracking-tight">{{ value|brl }}</p>
       {% set delta = value - previous_value %}
       <p class="mt-1 text-xs text-muted">{% if previous_value %}<span class="num font-semibold {{ ('text-positive' if delta >= 0 else 'text-negative') if tone == 'positive' else ('text-negative' if delta > 0 else 'text-positive') }}">{{ delta|brl(True) }}</span> vs. mês anterior{% else %}Sem dados no mês anterior{% endif %}</p>
       {% if tone == "negative" and cur.card_expense %}<p class="mt-0.5 text-xs text-muted">inclui <span class="num">{{ cur.card_expense|brl }}</span> em parcelas de cartão</p>{% endif %}
     </article>
     {% endfor %}
     <article class="card card-pad">
-      <p class="flex items-center gap-2 text-sm text-muted"><span class="inline-flex size-7 items-center justify-center rounded-lg bg-primary-soft text-primary">{{ icon("scale") }}</span>Resultado líquido {{ regime("competencia") }}</p>
-      <p class="num mt-2 text-2xl font-bold tracking-tight {{ 'text-negative' if cur.net < 0 else 'text-positive' }}">{{ cur.net|brl(True) }}</p>
+      <p class="flex items-center gap-2 text-sm text-muted">Resultado líquido {{ regime("competencia") }}</p>
+      <p class="num mt-2 text-2xl font-semibold tracking-tight {{ 'text-negative' if cur.net < 0 }}">{{ cur.net|brl(True) }}</p>
       <p class="mt-1 text-xs text-muted">Economia: <span class="num font-semibold text-fg">{{ (cur.savings_rate|string).replace(".", ",") ~ "%" if cur.savings_rate is not none else "—" }}</span> das receitas</p>
     </article>
   </section>
@@ -41,7 +40,7 @@
     <article class="card card-pad">
       <p class="flex items-center justify-between text-sm text-muted"><span>Orçamento utilizado</span>{{ regime("competencia") }}</p>
       {% if d.budgets.items %}
-      <p class="num mt-2 text-xl font-bold">{{ (d.budgets.pct|string).replace(".", ",") }}%</p>
+      <p class="num mt-2 text-xl font-semibold">{{ (d.budgets.pct|string).replace(".", ",") }}%</p>
       <div class="mt-3">{{ progress(d.budgets.pct|float, "negative" if d.budgets.pct >= 100 else "warning" if d.budgets.pct >= 80 else "primary", (d.budgets.total_planned * 100 / d.budgets.total_limit) if d.budgets.total_limit else 0, "Orçamento total utilizado") }}</div>
       <p class="mt-2 text-xs text-muted"><span class="num">{{ d.budgets.total_used|brl }}</span> de <span class="num">{{ d.budgets.total_limit|brl }}</span>{% if d.budgets.total_planned %} · previsto <span class="num">{{ d.budgets.total_planned|brl }}</span>{% endif %}</p>
       {% else %}
@@ -51,7 +50,7 @@
     </article>
     <article class="card card-pad">
       <p class="flex items-center justify-between text-sm text-muted"><span>Faturas em aberto</span>{{ regime("caixa") }}</p>
-      <p class="num mt-2 text-xl font-bold">{{ d.open_statements_total|brl }}</p>
+      <p class="num mt-2 text-xl font-semibold">{{ d.open_statements_total|brl }}</p>
       <p class="mt-2 text-xs text-muted">{{ d.open_statements|length }} fatura(s) · dívida total no cartão <span class="num">{{ d.card_debt|brl }}</span></p>
     </article>
     <article class="card card-pad">
@@ -62,7 +61,7 @@
     </article>
     <article class="card card-pad">
       <p class="flex items-center justify-between text-sm text-muted"><span>Saldo projetado em 90 dias</span>{{ regime("previsto") }}</p>
-      <p class="num mt-2 text-xl font-bold {{ 'text-negative' if d.forecast.ending_balance < 0 }}">{{ d.forecast.ending_balance|brl }}</p>
+      <p class="num mt-2 text-xl font-semibold {{ 'text-negative' if d.forecast.ending_balance < 0 }}">{{ d.forecast.ending_balance|brl }}</p>
       {% set fn = d.forecast.first_negative %}
       {% if fn %}<p class="mt-2 text-xs font-semibold text-negative">{{ icon("triangle-alert", "inline size-3.5") }} Saldo negativo previsto em {{ fn[0]|date_br }}</p>{% else %}<p class="mt-2 text-xs text-muted">Menor saldo previsto: <span class="num">{{ d.forecast.lowest[1]|brl }}</span></p>{% endif %}
       <a href="/app/previsao" class="link mt-1 inline-block text-xs">Ver previsão detalhada</a>
@@ -70,13 +69,17 @@
   </section>
 
   {% if d.budgets.alerts %}
-  <section class="space-y-2" aria-label="Alertas de orçamento">
-    {% for a in d.budgets.alerts[:4] %}
-    <div class="flex items-center gap-3 rounded-xl border px-4 py-3 text-sm {{ 'border-negative/30 bg-negative-soft text-negative' if a.level == 'over' else 'border-warning/30 bg-warning-soft text-warning' }}" role="status">
-      {{ icon("triangle-alert", "size-4 shrink-0") }}
-      <p><strong>{{ a.budget.category.name }}</strong>: {{ (a.pct|string).replace(".", ",") }}% do orçamento utilizado{% if a.level == "over" %} — limite atingido{% else %} — atenção, acima de 80%{% endif %}.</p>
-    </div>
-    {% endfor %}
+  {% set over = d.budgets.alerts|selectattr("level", "equalto", "over")|list %}
+  {% set near = d.budgets.alerts|selectattr("level", "equalto", "warning")|list %}
+  <section class="flex items-start gap-3 rounded-lg border border-line border-l-2 border-l-negative bg-surface px-4 py-3 text-sm" role="status" aria-label="Alertas de orçamento">
+    {{ icon("triangle-alert", "mt-0.5 size-4 shrink-0 text-negative") }}
+    <p class="text-fg-2">
+      {% if over %}<span class="font-medium text-fg">Limite atingido:</span>
+      {% for a in over %}{{ a.budget.category.name }} <span class="num text-muted">({{ (a.pct|string).replace(".", ",") }}%)</span>{{ ", " if not loop.last }}{% endfor %}.{% endif %}
+      {% if near %}<span class="font-medium text-fg">{{ " " if over }}Acima de 80%:</span>
+      {% for a in near %}{{ a.budget.category.name }} <span class="num text-muted">({{ (a.pct|string).replace(".", ",") }}%)</span>{{ ", " if not loop.last }}{% endfor %}.{% endif %}
+      <a class="link ml-1" href="/app/orcamentos?month={{ d.month.iso() }}">Ver orçamentos</a>
+    </p>
   </section>
   {% endif %}
 

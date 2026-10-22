@@ -6,7 +6,7 @@
 {% set step = {"uploaded": 2, "mapped": 3, "confirmed": 4, "discarded": 4}[batch.status.value] %}
 <ol class="mb-6 flex flex-wrap gap-2 text-sm" aria-label="Etapas">
   {% for n, label in [(1, "Envio"), (2, "Mapeamento"), (3, "Prévia e seleção"), (4, "Relatório")] %}
-  <li class="flex items-center gap-2 rounded-full px-3 py-1 {{ 'bg-primary text-white dark:text-[#06122b]' if n == step else ('bg-positive-soft text-positive' if n < step else 'bg-surface-3 text-muted') }}" {% if n == step %}aria-current="step"{% endif %}>
+  <li class="flex items-center gap-2 rounded-full px-3 py-1 {{ 'bg-primary text-on-primary' if n == step else ('bg-positive-soft text-positive' if n < step else 'bg-surface-3 text-muted') }}" {% if n == step %}aria-current="step"{% endif %}>
     <span class="num font-bold">{{ n }}</span> {{ label }}
   </li>
   {% endfor %}
@@ -18,7 +18,7 @@
 {% if batch.status.value in ("uploaded", "mapped") %}
 <section class="card card-pad mb-6" aria-labelledby="h-map">
   <h2 id="h-map" class="text-base font-semibold">2. Mapeamento de colunas</h2>
-  <div class="table-wrap mt-4 rounded-xl border border-line">
+  <div class="table-wrap mt-4 rounded-md border border-line">
     <table class="table text-xs">
       <caption class="sr-only">Primeiras linhas do arquivo</caption>
       <thead><tr><th scope="col">#</th>{% for h in batch.headers %}<th scope="col">{{ loop.index0 }} · {{ h }}</th>{% endfor %}</tr></thead>

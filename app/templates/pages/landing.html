@@ -1,27 +1,25 @@
 {% extends "layouts/public.html" %}
 {% block title %}Gestão financeira inteligente{% endblock %}
 {% block content %}
-<section class="relative overflow-hidden">
-  <div class="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"></div>
-  <div class="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
+<section>
+  <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
     <div>
-      <span class="badge-accent">{{ icon("sparkles", "size-3.5") }} Finanças pessoais com rigor de produto</span>
-      <h1 class="mt-5 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl">Seu dinheiro, organizado <span class="text-primary">ao centavo</span>.</h1>
+      <h1 class="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Seu dinheiro, organizado ao centavo.</h1>
       <p class="mt-5 max-w-xl text-lg leading-relaxed text-muted">Contas, cartões, orçamentos, metas e previsão de caixa em um painel claro — com regras financeiras consistentes e segurança desde a primeira linha de código.</p>
       <div class="mt-8 flex flex-wrap gap-3">
         <a href="{{ '/app' if logged_in else '/cadastro' }}" class="btn btn-primary px-5 py-3">{{ icon("arrow-up-right") }} {{ "Abrir painel" if logged_in else "Começar agora" }}</a>
         <a href="#recursos" class="btn btn-secondary px-5 py-3">Ver recursos</a>
       </div>
     </div>
-    <div class="card card-pad shadow-lift" aria-hidden="true">
+    <div class="card card-pad" aria-hidden="true">
       <div class="flex items-center justify-between"><p class="card-title">Resumo do mês</p><span class="regime">Competência</span></div>
       <div class="mt-5 grid grid-cols-3 gap-3">
-        <div class="rounded-xl bg-positive-soft p-3"><p class="text-xs text-muted">Receitas</p><p class="num mt-1 font-semibold text-positive">R$ 8.420,00</p></div>
-        <div class="rounded-xl bg-negative-soft p-3"><p class="text-xs text-muted">Despesas</p><p class="num mt-1 font-semibold text-negative">R$ 5.913,47</p></div>
-        <div class="rounded-xl bg-primary-soft p-3"><p class="text-xs text-muted">Economia</p><p class="num mt-1 font-semibold text-primary">29,8%</p></div>
+        <div class="rounded-md border border-line p-3"><p class="text-xs text-muted">Receitas</p><p class="num mt-1 font-semibold">R$ 8.420,00</p></div>
+        <div class="rounded-md border border-line p-3"><p class="text-xs text-muted">Despesas</p><p class="num mt-1 font-semibold">R$ 5.913,47</p></div>
+        <div class="rounded-md border border-line p-3"><p class="text-xs text-muted">Economia</p><p class="num mt-1 font-semibold">29,8%</p></div>
       </div>
       <div class="mt-6 space-y-4 text-sm">
-        {% for name, pct, tone in [("Alimentação", 82, "bg-warning"), ("Transporte", 54, "bg-primary"), ("Lazer", 103, "bg-negative")] %}
+        {% for name, pct, tone in [("Alimentação", 82, "bg-fg-2"), ("Transporte", 54, "bg-fg-2"), ("Lazer", 103, "bg-negative")] %}
         <div><div class="mb-1.5 flex justify-between"><span>{{ name }}</span><span class="num text-muted">{{ pct }}%</span></div><div class="progress"><span class="{{ tone }} {{ width_class(pct) }}"></span></div></div>
         {% endfor %}
       </div>
@@ -30,7 +28,7 @@
   </div>
 </section>
 <section id="recursos" class="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-  <h2 class="text-2xl font-bold tracking-tight">Tudo que importa, sem planilhas</h2>
+  <h2 class="text-xl font-semibold tracking-tight">Tudo que importa, sem planilhas</h2>
   <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {% for ic, title, text in [
       ("wallet", "Múltiplas contas", "Corrente, poupança, carteira e contas digitais com saldo realizado sempre consistente."),
@@ -44,8 +42,8 @@
       ("shield-check", "Segurança e auditoria", "Argon2id, CSRF, rate limiting, CSP estrita e trilha de auditoria imutável."),
     ] %}
     <article class="card card-pad">
-      <span class="inline-flex size-10 items-center justify-center rounded-xl bg-primary-soft text-primary">{{ icon(ic, "size-5") }}</span>
-      <h3 class="mt-4 font-semibold">{{ title }}</h3>
+      <span class="text-muted">{{ icon(ic, "size-5") }}</span>
+      <h3 class="mt-3 font-medium">{{ title }}</h3>
       <p class="mt-1 text-sm text-muted">{{ text }}</p>
     </article>
     {% endfor %}

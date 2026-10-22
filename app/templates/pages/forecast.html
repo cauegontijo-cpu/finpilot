@@ -7,7 +7,7 @@
 <form class="mb-6 flex flex-wrap items-end gap-3" method="get" action="/app/previsao" data-autosubmit hx-get="/app/previsao" hx-target="body" hx-push-url="true">
   <fieldset>
     <legend class="label">Horizonte</legend>
-    <div class="flex gap-1 rounded-xl bg-surface-3 p-1">
+    <div class="flex gap-1 rounded-md bg-surface-3 p-1">
       {% for h in horizons %}
       <label class="cursor-pointer"><input type="radio" name="dias" value="{{ h }}" class="peer sr-only" {% if h == days %}checked{% endif %}><span class="block rounded-lg px-4 py-1.5 text-sm font-semibold text-muted peer-checked:bg-surface peer-checked:text-fg peer-checked:shadow-soft peer-focus-visible:ring-2 peer-focus-visible:ring-primary">{{ h }} dias</span></label>
       {% endfor %}
@@ -23,7 +23,7 @@
   <noscript><button class="btn btn-secondary" type="submit">Aplicar</button></noscript>
 </form>
 
-<div class="mb-6 rounded-xl border border-info/30 bg-info-soft px-4 py-3 text-sm text-info" role="note">
+<div class="mb-6 rounded-md border border-info/30 bg-info-soft px-4 py-3 text-sm text-info" role="note">
   {{ icon("info", "mr-1 inline size-4") }} Projeção <strong>determinística</strong>: parte do saldo realizado de hoje e soma apenas lançamentos previstos, recorrências programadas e faturas de cartão a pagar. Não utiliza estatística nem inteligência artificial.
 </div>
 
@@ -36,7 +36,7 @@
 
 {% set fn = f.first_negative %}
 {% if fn %}
-<div class="mt-6 rounded-xl border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative" role="alert">
+<div class="mt-6 rounded-md border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative" role="alert">
   {{ icon("triangle-alert", "mr-1 inline size-4") }} O saldo consolidado fica <strong>negativo em {{ fn[0]|date_br }}</strong> ({{ fn[1]|brl }}){% if fn[2] %}, motivado por: {{ fn[2]|map(attribute="description")|join(", ") }}{% endif %}. {{ f.negative_days|length }} dia(s) negativo(s) no período.
 </div>
 {% endif %}

@@ -13,7 +13,7 @@
   {% else %}
   <fieldset>
     <legend class="label">Tipo</legend>
-    <div class="grid grid-cols-2 gap-2 rounded-xl bg-surface-3 p-1">
+    <div class="grid grid-cols-2 gap-2 rounded-md bg-surface-3 p-1">
       {% for v, l, ic in [("expense", "Despesa", "trending-down"), ("income", "Receita", "trending-up")] %}
       <label class="cursor-pointer">
         <input type="radio" name="type" value="{{ v }}" class="peer sr-only" {% if tx_type == v %}checked{% endif %}>
