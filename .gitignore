@@ -12,7 +12,6 @@ __pycache__/
 coverage.xml
 htmlcov/
 bin/tailwindcss*
-app/static/css/app.css
 *.log
 .DS_Store
 Thumbs.db

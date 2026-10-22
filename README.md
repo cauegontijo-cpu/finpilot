@@ -4,6 +4,12 @@
 
 ![Dashboard do FinPilot](docs/screenshots/dashboard-light.png)
 
+## Teste online
+
+**Demo pública:** _link em breve_
+
+Crie uma conta com seu e-mail, confirme pelo link recebido (verifique também o spam) e use à vontade. Não informe dados financeiros reais: é um ambiente de demonstração. O primeiro acesso pode levar cerca de 1 minuto, porque o servidor gratuito hiberna quando fica sem uso.
+
 ## O problema
 
 Planilhas e apps simples misturam conceitos: compras no cartão aparecem duas vezes (na compra e no pagamento da fatura), transferências viram “receita”, o saldo diverge do extrato e ninguém sabe se o orçamento considera o que ainda vai vencer. O FinPilot separa **competência**, **caixa**, **projeção** e **reservas gerenciais**, e mostra em cada indicador qual regime está sendo usado.
@@ -72,26 +78,44 @@ erDiagram
 
 Modelo completo em [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
 
-## Requisitos
+## Como rodar no seu computador
 
-* Docker com Docker Compose.
-* Para rodar fora de containers: [uv](https://docs.astral.sh/uv/) e Python 3.12 ou superior.
-* Binário standalone do Tailwind v4.1.11 em `bin/`. O `make setup` baixa o de Linux; no Windows, use o `tailwindcss-windows-x64.exe`.
+### Jeito mais simples (só Docker)
 
-## Instalação e execução
+Você só precisa do [Git](https://git-scm.com/downloads) e do [Docker Desktop](https://www.docker.com/products/docker-desktop/) (aberto e rodando).
 
 ```bash
-git clone <repo> finpilot && cd finpilot
-cp .env.example .env                 # troque TODOS os segredos
-make setup                           # dependências + Tailwind
-make up                              # postgres, redis, mailpit, migrate, web e scheduler
-# ou, sem containers para a aplicação:
-make infra && make migrate && make run
+git clone https://github.com/cauegontijo-cpu/finpilot.git
+cd finpilot
+cp .env.example .env          # no Windows (PowerShell): copy .env.example .env
+docker compose up -d --build  # a primeira vez demora alguns minutos
 ```
 
-* Aplicação: <http://localhost:8000>
-* E-mails de desenvolvimento (Mailpit): <http://localhost:8025>
+Pronto:
+
+* Aplicação: <http://localhost:8000>. Clique em **Criar conta**.
+* Caixa de e-mails de teste (Mailpit): <http://localhost:8025>. Os e-mails de confirmação de conta e de redefinição de senha chegam aqui, e nada é enviado para fora.
 * API (OpenAPI): <http://localhost:8000/api/docs>
+
+Para entrar com uma conta já cheia de dados de exemplo (12 meses de lançamentos, cartões e metas), use o usuário definido em `DEMO_EMAIL`/`DEMO_PASSWORD` no `.env` e rode:
+
+```bash
+docker compose exec web python -m scripts.seed_demo
+```
+
+Para parar: `docker compose down`. Para apagar também os dados: `docker compose down -v`.
+
+> Os valores do `.env.example` servem para uso local. Em qualquer ambiente acessível pela internet, troque **todos** os segredos (gere com `python -c "import secrets; print(secrets.token_urlsafe(48))"`).
+
+### Para desenvolvimento (aplicação fora do container)
+
+Requisitos: [uv](https://docs.astral.sh/uv/), Python 3.12 ou superior e o binário standalone do Tailwind v4.1.11 em `bin/` (o `make setup` baixa o de Linux; no Windows, use o `tailwindcss-windows-x64.exe`).
+
+```bash
+make setup                           # dependências + Tailwind
+make infra && make migrate && make run
+make css                             # recompila o CSS após mudar templates
+```
 
 ### Variáveis de ambiente
 
@@ -135,7 +159,7 @@ make cov         # falha abaixo de 80% em services/domain
 make check       # lint + mypy --strict + testes (o mesmo que o CI)
 ```
 
-Última execução local: **255 testes aprovados** (mais 2 ponta a ponta com Playwright, executados à parte e aprovados). Cobertura de **90,6%** em `app/services` e **96,1%** em `app/domain`. Detalhes em [docs/TESTING.md](docs/TESTING.md).
+Última execução local: **259 testes aprovados** (mais 2 ponta a ponta com Playwright, executados à parte e aprovados). Cobertura de **90,6%** em `app/services` e **96,1%** em `app/domain`. Detalhes em [docs/TESTING.md](docs/TESTING.md).
 
 ## Documentação da API
 
