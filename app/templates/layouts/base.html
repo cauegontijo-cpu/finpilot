@@ -9,10 +9,10 @@
   <title>{% block title %}{{ app_name }}{% endblock %} · {{ app_name }}</title>
   <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/static/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="{{ asset('/static/css/app.css') }}">
   <script src="/static/vendor/htmx.min.js" defer></script>
   {% block head_scripts %}{% endblock %}
-  <script src="/static/js/app.js" defer></script>
+  <script src="{{ asset('/static/js/app.js') }}" defer></script>
 </head>
 <body class="{% block body_class %}bg-bg text-fg{% endblock %}">
   <a href="#conteudo" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 btn btn-primary">Pular para o conteúdo</a>

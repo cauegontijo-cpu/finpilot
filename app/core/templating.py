@@ -66,6 +66,16 @@ def _tojson_script(value: Any) -> Markup:
     return Markup(text)  # noqa: S704 - caracteres perigosos escapados acima
 
 
+def asset(path: str) -> str:
+    """URL de arquivo estático com versão (mtime) — evita CSS/JS antigo em cache após mudanças."""
+    file = APP_DIR / path.lstrip("/")
+    try:
+        version = int(file.stat().st_mtime)
+    except OSError:
+        version = 0
+    return f"{path}?v={version}"
+
+
 def width_class(value: float) -> str:
     """Classe CSS de largura percentual (0–100); evita style inline bloqueado pela CSP."""
     return f"w-pct-{max(0, min(100, round(value)))}"
@@ -101,6 +111,7 @@ def build_templates() -> Jinja2Templates:
     )
     env.globals.update(
         icon=icon,
+        asset=asset,
         width_class=width_class,
         color_class=color_class,
         TYPE_LABELS=TYPE_LABELS,
