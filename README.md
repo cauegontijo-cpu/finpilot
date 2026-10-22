@@ -216,7 +216,3 @@ Capturas reais da aplicação rodando com o seed de demonstração (`scripts/scr
 * Fila de tarefas para e-mails e jobs (ex.: Redis + worker).
 * Multi-moeda e contas de investimento.
 * Tokens de API pessoais com escopos, para integrações.
-
-## Licença
-
-MIT.
