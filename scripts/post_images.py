@@ -56,7 +56,7 @@ def login(page: Page, base: str, email: str, password: str) -> None:
     page.wait_for_url("**/app")
 
 
-def main() -> None:
+def main() -> None:  # noqa: PLR0915 - roteiro sequencial de capturas
     load_dotenv_if_present()
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="http://localhost:8000")
