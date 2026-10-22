@@ -61,18 +61,27 @@ As 77 regras estão rastreadas até o código e o teste correspondentes em `docs
 
 ## 7. Sugestão de publicação
 
-> 🚀 **Projeto novo no portfólio: FinPilot, uma plataforma de gestão financeira pessoal em Python**
+> Projeto novo no portfólio: o **FinPilot**, uma plataforma de finanças pessoais que construí do zero em Python. Está no ar e qualquer pessoa pode testar.
 >
-> Construí do zero um SaaS financeiro completo, com FastAPI, PostgreSQL, HTMX e Docker. Ele tem contas, cartões com parcelamento, orçamentos com alertas, metas, recorrências, importação de extratos CSV, relatórios em PDF e CSV e previsão de fluxo de caixa.
+> A ideia surgiu de um incômodo: planilhas e apps simples contam a compra no cartão duas vezes (na compra e no pagamento da fatura), tratam transferência como receita e deixam o saldo divergir do extrato. No FinPilot, cada número diz de onde vem: o que já aconteceu, o que é do mês e o que ainda vai vencer.
 >
-> O que mais me desafiou e ensinou:
-> 🔒 **Segurança aplicada:** Argon2id, sessões server-side, CSRF em formulários, HTMX e API, CSP estrita sem JavaScript inline, rate limiting e auditoria imutável. Cada controle tem teste automatizado.
-> ⚖️ **Consistência financeira:** valores em centavos, locks no banco e idempotência. Testes com operações simultâneas garantem que o saldo nunca fica inconsistente.
-> 💳 **Regras de verdade:** a parcela é despesa na competência da fatura e o pagamento é só saída de caixa. Assim não há dupla contagem.
-> ✅ **Qualidade:** 257 testes automatizados (unitários, integração com PostgreSQL real, segurança, concorrência e ponta a ponta com Playwright), mypy em modo estrito e CI no GitHub Actions.
+> **O que dá para fazer:** contas, cartões com parcelamento e faturas, orçamentos com alertas, metas, lançamentos recorrentes, importação de extrato em CSV, relatórios em PDF e previsão do saldo para os próximos 90 dias, com modo claro e escuro.
 >
-> Código, arquitetura e decisões técnicas no GitHub: [link do repositório]
+> **O que mais me ensinou:**
+> • Dinheiro guardado em centavos e parcelas exatas: R$ 100 em 3x vira 33,34 + 33,33 + 33,33.
+> • Duas operações ao mesmo tempo nunca deixam o saldo errado (testei com operações simultâneas de verdade).
+> • Segurança desde o início: senhas com Argon2id, proteção contra CSRF, limite de tentativas, auditoria que não pode ser apagada e cada usuário enxergando só os próprios dados.
+> • 261 testes automatizados, verificação de tipos e integração contínua no GitHub.
 >
-> #Python #FastAPI #PostgreSQL #HTMX #DesenvolvimentoWeb #SegurançaDaInformação #FullStack
+> **Stack:** Python, FastAPI, PostgreSQL, SQLAlchemy, HTMX, Tailwind, Redis e Docker.
+>
+> 🔗 Teste online: [link da demo]
+> 💻 Código: https://github.com/cauegontijo-cpu/finpilot
+>
+> É uma demo: crie a conta com seu e-mail, mas não use dados financeiros reais. O primeiro acesso pode levar cerca de 1 minuto, porque o servidor gratuito hiberna quando fica sem uso.
+>
+> Feedbacks são muito bem-vindos!
+>
+> #Python #FastAPI #PostgreSQL #DesenvolvimentoWeb #FullStack #Portfolio
 
-*Os números citados (257 testes; cobertura de 90,6% em services e 96,1% em domain) vêm da execução local registrada em `docs/TESTING.md`. Atualize-os se o projeto mudar.*
+*Os números (261 testes, sendo 259 automatizados e 2 ponta a ponta com Playwright; cobertura de 90,6% em services e 96,1% em domain) vêm da execução local registrada em `docs/TESTING.md`. Atualize-os se o projeto mudar.*
