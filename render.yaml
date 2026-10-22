@@ -1,0 +1,53 @@
+# Blueprint da Render: cria web (Docker) + PostgreSQL + Key Value (Redis) a partir deste repositório.
+# Passo a passo em docs/DEPLOYMENT.md (seção "Demo pública na Render").
+services:
+  - type: web
+    name: finpilot
+    runtime: docker
+    plan: free
+    healthCheckPath: /health/live
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finpilot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: finpilot-redis
+          property: connectionString
+      - key: RATE_LIMIT_BACKEND
+        value: redis
+      - key: EMAIL_BACKEND
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false # informada no painel da Render
+      - key: MAIL_FROM
+        sync: false # ex.: FinPilot <seu-email-verificado@gmail.com>
+      - key: EMBEDDED_SCHEDULER
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: DATABASE_POOL_SIZE
+        value: "5"
+      - key: API_DOCS_ENABLED
+        value: "true"
+
+  - type: keyvalue
+    name: finpilot-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # acessível apenas pela rede interna da Render
+
+databases:
+  - name: finpilot-db
+    plan: free
+    databaseName: finpilot
+    ipAllowList: [] # sem acesso externo

@@ -102,7 +102,8 @@ make infra && make migrate && make run
 | `DATABASE_URL` / `MIGRATOR_DATABASE_URL` | Papel da aplicação (só DML) e papel de migrations (DDL). |
 | `POSTGRES_PASSWORD`, `MIGRATOR_DB_PASSWORD`, `APP_DB_PASSWORD` | Senhas usadas pelo compose para criar os papéis. |
 | `REDIS_URL`, `RATE_LIMIT_BACKEND` | Rate limiting (`redis` ou `memory`). |
-| `EMAIL_BACKEND`, `SMTP_*`, `MAIL_FROM` | Envio de e-mails transacionais. |
+| `EMAIL_BACKEND`, `SMTP_*`, `BREVO_API_KEY`, `MAIL_FROM` | Envio de e-mails transacionais (`smtp`, `brevo` ou `memory`). |
+| `EMBEDDED_SCHEDULER` | Roda os jobs dentro do processo web (hospedagens sem serviço separado). |
 | `COOKIE_SECURE`, `SESSION_IDLE_TIMEOUT_MINUTES`, `SESSION_ABSOLUTE_TIMEOUT_HOURS` | Política de sessão. |
 | `IMPORT_MAX_BYTES`, `IMPORT_MAX_ROWS`, `EXPORT_MAX_ROWS` | Limites de importação e exportação. |
 | `DEMO_EMAIL`, `DEMO_PASSWORD` | Usuário de demonstração, só em desenvolvimento e sem valor padrão no código. |
@@ -168,7 +169,9 @@ Capturas reais da aplicação rodando com o seed de demonstração (`scripts/scr
 
 ## Implantação
 
-Servidor Linux com `docker-compose.prod.yml`: Caddy com HTTPS automático, Uvicorn multi-worker com filesystem somente leitura, e PostgreSQL e Redis só na rede interna. Backups são verificados e o restore foi testado. Passo a passo em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+**Demo pública (Render + Brevo, plano gratuito):** o arquivo [render.yaml](render.yaml) cria a aplicação, o PostgreSQL e o Redis a partir deste repositório, com deploy automático a cada push. Os e-mails de confirmação de conta e de redefinição de senha são enviados de verdade pela API do Brevo. O passo a passo está em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-pública-na-render).
+
+**Servidor próprio:** servidor Linux com `docker-compose.prod.yml`: Caddy com HTTPS automático, Uvicorn multi-worker com filesystem somente leitura, e PostgreSQL e Redis só na rede interna. Backups são verificados e o restore foi testado. Passo a passo em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Limitações conhecidas
 

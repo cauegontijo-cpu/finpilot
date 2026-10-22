@@ -181,3 +181,19 @@ async def _reject_413(send: Send) -> None:
         }
     )
     await send({"type": "http.response.body", "body": body})
+
+
+class HealthAwareTrustedHostMiddleware:
+    """TrustedHost para todo o app, exceto /health/* (sondas internas da plataforma usam outro Host)."""
+
+    def __init__(self, app: ASGIApp, allowed_hosts: list[str]) -> None:
+        from starlette.middleware.trustedhost import TrustedHostMiddleware  # noqa: PLC0415
+
+        self.app = app
+        self.checked = TrustedHostMiddleware(app, allowed_hosts=allowed_hosts)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and str(scope.get("path", "")).startswith("/health/"):
+            await self.app(scope, receive, send)
+            return
+        await self.checked(scope, receive, send)

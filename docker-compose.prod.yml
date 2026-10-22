@@ -51,7 +51,9 @@ services:
     image: ${IMAGE:-finpilot:latest}
     build: .
     restart: unless-stopped
-    environment: *app-env
+    environment:
+      <<: *app-env
+      RUN_MIGRATIONS: "false" # o serviço migrate aplica as migrations com o papel de DDL
     depends_on:
       migrate:
         condition: service_completed_successfully

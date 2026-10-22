@@ -6,9 +6,10 @@ desenvolvimento). Em produção a aplicação recusa iniciar com valores insegur
 
 from __future__ import annotations
 
+import os
 from enum import StrEnum
 from functools import lru_cache
-from typing import Self
+from typing import Any, Self
 
 from pydantic import Field, PostgresDsn, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -56,7 +57,9 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = False
     mail_from: str = "FinPilot <no-reply@finpilot.local>"
-    email_backend: str = Field(default="smtp", pattern="^(smtp|memory)$")
+    #: smtp | brevo (API HTTPS — útil onde a porta SMTP é bloqueada) | memory (testes)
+    email_backend: str = Field(default="smtp", pattern="^(smtp|brevo|memory)$")
+    brevo_api_key: SecretStr | None = None
 
     # Importação / exportação
     import_max_bytes: int = Field(default=2 * 1024 * 1024, ge=1024, le=20 * 1024 * 1024)
@@ -77,6 +80,9 @@ class Settings(BaseSettings):
     timezone: str = "America/Sao_Paulo"
     log_level: str = "INFO"
     api_docs_enabled: bool = True
+    #: Executa recorrências/manutenção numa thread do próprio processo web
+    #: (para hospedagens sem cron, ex.: plano gratuito do Render).
+    embedded_scheduler: bool = False
 
     # Demonstração (somente development)
     demo_email: str | None = None
@@ -97,6 +103,21 @@ class Settings(BaseSettings):
             f"__Host-{self.session_cookie_name}" if self.cookie_secure else self.session_cookie_name
         )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _platform_defaults(cls, data: Any) -> Any:
+        """Na Render, o endereço público vem de RENDER_EXTERNAL_URL/HOSTNAME (sem configuração manual)."""
+        if not isinstance(data, dict):
+            return data
+        external_url = os.environ.get("RENDER_EXTERNAL_URL")
+        external_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+        keys = {k.lower() for k in data}
+        if external_url and "base_url" not in keys and "BASE_URL" not in os.environ:
+            data["base_url"] = external_url
+        if external_host and "allowed_hosts" not in keys and "ALLOWED_HOSTS" not in os.environ:
+            data["allowed_hosts"] = [external_host]
+        return data
+
     @model_validator(mode="after")
     def _validate_security(self) -> Self:
         secret = self.secret_key.get_secret_value()
@@ -112,8 +133,10 @@ class Settings(BaseSettings):
                 problems.append("BASE_URL deve usar https:// em produção")
             if self.rate_limit_backend != "redis" or self.redis_url is None:
                 problems.append("Produção exige REDIS_URL e RATE_LIMIT_BACKEND=redis")
-            if self.email_backend != "smtp":
-                problems.append("Produção exige EMAIL_BACKEND=smtp")
+            if self.email_backend == "memory":
+                problems.append("Produção exige EMAIL_BACKEND=smtp ou brevo")
+            if self.email_backend == "brevo" and not self.brevo_api_key:
+                problems.append("EMAIL_BACKEND=brevo exige BREVO_API_KEY")
             if not self.allowed_hosts or "*" in self.allowed_hosts:
                 problems.append("ALLOWED_HOSTS deve listar explicitamente os hosts válidos")
             if problems:

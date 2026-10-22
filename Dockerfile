@@ -43,7 +43,6 @@ COPY --from=css --chown=finpilot:finpilot /src/app/static/css/app.css ./app/stat
 USER finpilot
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3).status == 200 else 1)"
-# Servidor de produção: Uvicorn com múltiplos workers, sem --reload; atrás do proxy (Caddy).
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", \
-     "--proxy-headers", "--forwarded-allow-ips", "*", "--no-server-header", "--no-access-log"]
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:' + __import__('os').environ.get('PORT', '8000') + '/health/live', timeout=3).status == 200 else 1)"
+# Produção: migrations + Uvicorn com workers (sem --reload), porta de $PORT ou 8000.
+CMD ["sh", "scripts/start.sh"]

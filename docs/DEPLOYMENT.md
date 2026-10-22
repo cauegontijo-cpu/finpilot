@@ -4,6 +4,42 @@
 
 `docker-compose.prod.yml`: **Caddy** (único serviço com portas públicas 80/443, HTTPS automático) → **web** (Uvicorn com 4 workers, sem `--reload`, filesystem somente leitura, usuário sem privilégios) · **scheduler** (recorrências e manutenção) · **migrate** (executa `alembic upgrade head` e termina) · **PostgreSQL 16** e **Redis 7** apenas na rede interna (`internal: true`), sem portas publicadas.
 
+## Demo pública na Render
+
+Forma mais simples de ter um link público para qualquer pessoa testar, inclusive o cadastro com e-mail real. O [render.yaml](../render.yaml) (Blueprint) cria três recursos gratuitos: o serviço **web** (imagem do `Dockerfile`), o **PostgreSQL** e o **Key Value** (Redis). PostgreSQL e Redis ficam sem acesso externo.
+
+### 1. E-mail (Brevo)
+
+1. Crie uma conta gratuita em <https://www.brevo.com> (300 e-mails por dia).
+2. Em **Senders, Domains & Dedicated IPs → Senders**, adicione e verifique o e-mail remetente (pode ser um Gmail seu).
+3. Em **SMTP & API → API Keys**, gere uma chave. Guarde-a: ela só vai para o painel da Render, nunca para o repositório.
+
+### 2. Aplicação (Render)
+
+1. Crie uma conta em <https://render.com> e conecte o GitHub.
+2. **New → Blueprint**, escolha este repositório e confirme.
+3. Preencha as variáveis pedidas:
+   * `BREVO_API_KEY`: a chave do passo anterior;
+   * `MAIL_FROM`: `FinPilot <email-verificado@exemplo.com>`, com o remetente verificado no Brevo.
+4. Aguarde o build. O endereço público aparece no topo do serviço (`https://finpilot-xxxx.onrender.com`).
+
+O que é configurado automaticamente:
+
+* `SECRET_KEY` é gerado pela Render;
+* `BASE_URL` e `ALLOWED_HOSTS` vêm de `RENDER_EXTERNAL_URL` e `RENDER_EXTERNAL_HOSTNAME`;
+* as migrations rodam no início de cada deploy (`scripts/start.sh`);
+* recorrências e manutenção rodam numa thread do próprio web (`EMBEDDED_SCHEDULER=true`);
+* cada push na branch `main` gera um novo deploy.
+
+Diferenças em relação ao servidor próprio: a Render usa um único papel de banco, então a separação entre papel de migrations e papel da aplicação não existe ali. A tabela de auditoria continua protegida contra alteração pelo gatilho.
+
+### Limites do plano gratuito
+
+* O serviço web hiberna após cerca de 15 minutos sem acesso. O primeiro acesso seguinte leva perto de 1 minuto.
+* O PostgreSQL gratuito expira 30 dias após a criação. Depois disso, é preciso migrar para um plano pago ou recriar o banco.
+* O Brevo gratuito envia até 300 e-mails por dia.
+* Não use dados financeiros reais em uma demo pública.
+
 ## Servidor Linux (Ubuntu 24.04 ou similar)
 
 1. Crie um usuário não root, habilite o firewall e libere apenas SSH, 80 e 443:

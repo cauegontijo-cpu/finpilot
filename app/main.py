@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_router
 from app.core.clock import Clock
@@ -17,7 +16,11 @@ from app.core.deps import csrf_protect
 from app.core.handlers import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.mailer import build_mailer
-from app.core.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
+from app.core.middleware import (
+    BodySizeLimitMiddleware,
+    HealthAwareTrustedHostMiddleware,
+    RequestContextMiddleware,
+)
 from app.core.ratelimit import MemoryRateLimiter, RedisRateLimiter
 from app.core.templating import APP_DIR
 from app.web.router import web_router
@@ -32,7 +35,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         logger.info("FinPilot iniciado", extra={"env": settings.env.value})
+        stop = None
+        if settings.embedded_scheduler:
+            from app.jobs.scheduler import start_embedded  # noqa: PLC0415 - só quando habilitado
+
+            stop = start_embedded()
         yield
+        if stop is not None:
+            stop.set()
 
     docs = settings.api_docs_enabled
     app = FastAPI(
@@ -67,7 +77,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.is_production:
         # 127.0.0.1/localhost: health check interno do container (o proxy envia o Host público).
         app.add_middleware(
-            TrustedHostMiddleware, allowed_hosts=[*settings.allowed_hosts, "127.0.0.1", "localhost"]
+            HealthAwareTrustedHostMiddleware,
+            allowed_hosts=[*settings.allowed_hosts, "127.0.0.1", "localhost"],
         )
 
     register_exception_handlers(app)
