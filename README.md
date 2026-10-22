@@ -171,6 +171,8 @@ Capturas reais da aplicação rodando com o seed de demonstração (`scripts/scr
 
 **Demo pública (Render + Brevo, plano gratuito):** o arquivo [render.yaml](render.yaml) cria a aplicação, o PostgreSQL e o Redis a partir deste repositório, com deploy automático a cada push. Os e-mails de confirmação de conta e de redefinição de senha são enviados de verdade pela API do Brevo. O passo a passo está em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#demo-pública-na-render).
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/cauegontijo-cpu/finpilot)
+
 **Servidor próprio:** servidor Linux com `docker-compose.prod.yml`: Caddy com HTTPS automático, Uvicorn multi-worker com filesystem somente leitura, e PostgreSQL e Redis só na rede interna. Backups são verificados e o restore foi testado. Passo a passo em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Limitações conhecidas
