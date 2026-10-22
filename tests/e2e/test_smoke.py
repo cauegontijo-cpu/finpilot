@@ -105,6 +105,14 @@ def test_register_verify_login_and_register_expense() -> None:
         page.click("#drawer button[type=submit]")
         expect(page.get_by_text("Mercado E2E")).to_be_visible()
 
+        # Regressão: links dentro da lista (hx-swap herdado) não podem destruir o contêiner do modal.
+        for _ in range(2):
+            page.locator("#tx-list [data-menu-trigger]").first.click()
+            page.locator("[data-menu]:not([hidden]) a", has_text="Histórico").first.click()
+            expect(page.locator("#modal[open]")).to_be_visible()
+            page.keyboard.press("Escape")
+            expect(page.locator("#modal[open]")).to_have_count(0)
+
         page.goto(f"{BASE_URL}/app")
         expect(page.get_by_text("R$ 876,55").first).to_be_visible()
         browser.close()
